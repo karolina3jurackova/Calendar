@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kalendář</title>
+    <link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="nav">
+            <button id="prevBtn">◀</button>
+            <button id="todayBtn">Dnes</button>
+            <button id="nextBtn">▶</button>
+        </div>
+
+        <div class="title" id="monthLabel">—</div>
+
+        <button id="newBtn" class="primary">+ Nová událost</button>
+    </header>
+
+    <main class="wrap">
+        <div class="weekdays">
+            <div>Po</div><div>Út</div><div>St</div><div>Čt</div><div>Pá</div><div>So</div><div>Ne</div>
+        </div>
+
+        <div id="grid" class="grid"></div>
+
+        <section class="panel">
+            <h3 id="selectedLabel">Vyber den</h3>
+            <div id="dayEvents" class="dayEvents">Žádné události</div>
+        </section>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modalOverlay" class="overlay hidden">
+        <div class="modal">
+            <h2 id="modalTitle">Nová událost</h2>
+
+            <label>Název</label>
+            <input id="eventTitle" type="text" placeholder="Např. Schůzka" />
+
+            <label>Datum</label>
+            <input id="eventDate" type="date" />
+
+            <label>Popis</label>
+            <textarea id="eventDesc" rows="3" placeholder="Poznámka..."></textarea>
+
+            <div class="actions">
+                <button id="deleteBtn" class="danger hidden">Smazat</button>
+                <div class="spacer"></div>
+                <button id="cancelBtn">Zrušit</button>
+                <button id="saveBtn" class="primary">Uložit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/site.js"></script>
+</body>
+</html>
