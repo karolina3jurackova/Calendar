@@ -1,0 +1,44 @@
+@model CalendarMvcApp.Models.Admin.Users.AdminUserEditVM
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<h2>Edit User</h2>
+
+<form asp-area="Admin" asp-controller="Users" asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Roles</label>
+
+        <div class="form-check">
+            <input asp-for="IsAdmin" class="form-check-input" />
+            <label asp-for="IsAdmin" class="form-check-label">Admin</label>
+        </div>
+
+        <div class="form-check">
+            <input asp-for="IsManager" class="form-check-input" />
+            <label asp-for="IsManager" class="form-check-label">Manager</label>
+        </div>
+
+        <div class="form-check">
+            <input asp-for="IsCustomer" class="form-check-input" />
+            <label asp-for="IsCustomer" class="form-check-label">Customer</label>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-secondary" asp-area="Admin" asp-controller="Users" asp-action="Index">Back</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

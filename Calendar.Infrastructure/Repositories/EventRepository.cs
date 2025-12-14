@@ -1,6 +1,6 @@
 using Calendar.Application.Abstraction.Repositories;
 using Calendar.Domain.Entities;
-using Calendar.Infrastructure.Data;          // <- toto!
+using Calendar.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Calendar.Infrastructure.Repositories;
@@ -8,7 +8,6 @@ namespace Calendar.Infrastructure.Repositories;
 public class EventRepository : IEventRepository
 {
     private readonly AppDbContext _db;
-
     public EventRepository(AppDbContext db) => _db = db;
 
     public Task<Event?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -18,6 +17,9 @@ public class EventRepository : IEventRepository
         => await _db.Events
             .Where(e => e.OwnerId == userId)
             .ToListAsync(ct);
+
+    public async Task<IList<Event>> GetAllAsync(CancellationToken ct = default)
+        => await _db.Events.ToListAsync(ct);
 
     public Task AddAsync(Event entity, CancellationToken ct = default)
         => _db.Events.AddAsync(entity, ct).AsTask();

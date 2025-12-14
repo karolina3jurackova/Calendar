@@ -1,0 +1,96 @@
+@model Calendar.Application.ViewModels.EventEditVM
+@{
+    ViewData["Title"] = "Edit event";
+    var id = (Guid)ViewBag.EventId;
+
+    // Model.Start / End sú DateTime (už lokálny čas z service/controller).
+    var startLocal = Model.Start;
+    var endLocal = Model.End;
+
+    string startDate = startLocal.ToString("yyyy-MM-dd");
+    string startTime = startLocal.ToString("HH:mm");
+    string endTime = endLocal.ToString("HH:mm");
+}
+
+<h2>Edit event</h2>
+
+<form asp-action="Edit" asp-route-id="@id" method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <!-- Date (required) -->
+    <div class="mb-3">
+        <label class="form-label">Date</label>
+        <input id="date" type="date" class="form-control" value="@startDate" required />
+        <div class="form-text">Čas je voliteľný. Keď ho nezadáš, doplní sa automaticky.</div>
+    </div>
+
+    <!-- Time (optional) -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Start time (optional)</label>
+            <input id="startTime" type="time" class="form-control" value="@startTime" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">End time (optional)</label>
+            <input id="endTime" type="time" class="form-control" value="@endTime" />
+        </div>
+    </div>
+
+    <!-- Hidden fields bound to VM -->
+    <input asp-for="Start" id="Start" type="hidden" />
+    <input asp-for="End" id="End" type="hidden" />
+
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@id">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Default times when user clears time inputs
+        const DEFAULT_START = "09:00";
+        const DEFAULT_END = "10:00";
+
+        function toDateTimeLocal(dateStr, timeStr) {
+            // "yyyy-MM-ddTHH:mm" for datetime-local binding
+            return `${dateStr}T${timeStr}`;
+        }
+
+        function syncHiddenFields() {
+            const date = document.getElementById("date").value;
+            if (!date) return;
+
+            const sTime = document.getElementById("startTime").value || DEFAULT_START;
+            const eTime = document.getElementById("endTime").value || DEFAULT_END;
+
+            document.getElementById("Start").value = toDateTimeLocal(date, sTime);
+            document.getElementById("End").value = toDateTimeLocal(date, eTime);
+        }
+
+        // init
+        syncHiddenFields();
+
+        document.getElementById("date").addEventListener("change", syncHiddenFields);
+        document.getElementById("startTime").addEventListener("change", syncHiddenFields);
+        document.getElementById("endTime").addEventListener("change", syncHiddenFields);
+
+        document.querySelector("form").addEventListener("submit", function () {
+            syncHiddenFields();
+        });
+    </script>
+}

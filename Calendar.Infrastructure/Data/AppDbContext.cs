@@ -18,6 +18,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // OwnerId ostáva len Guid bez FK na AspNetUsers (najjednoduchšie a čisté pre vrstvy)
+        modelBuilder.Entity<Event>()
+            .Property(e => e.OwnerId)
+            .IsRequired();
+
+        // Ak máš konfigurácie cez IEntityTypeConfiguration, nechaj:
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

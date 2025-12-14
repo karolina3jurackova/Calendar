@@ -1,26 +1,13 @@
 ﻿using Calendar.Infrastructure;
-using Calendar.Infrastructure.Data;
 using Calendar.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// všetko (DbContext + Identity + repo + services) ide cez Infrastructure
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Identity
-builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
-    {
-        options.Password.RequiredLength = 6;
-        options.User.RequireUniqueEmail = true;
-    })
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -32,13 +19,26 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-await IdentitySeed.SeedAsync(app.Services);
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+// 🔴 KROK 2.2 – HTTPS redirect (CHÝBAL)
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 🔴 Seed rolí + admin účtu (správne miesto)
+using (var scope = app.Services.CreateScope())
+{
+    await IdentitySeed.SeedAsync(scope.ServiceProvider);
+}
 
 app.MapControllerRoute(
     name: "areas",

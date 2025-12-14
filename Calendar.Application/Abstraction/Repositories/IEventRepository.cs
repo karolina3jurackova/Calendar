@@ -7,6 +7,9 @@ public interface IEventRepository
     Task<Event?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IList<Event>> GetForUserAsync(Guid userId, CancellationToken ct = default);
 
+    // ADMIN
+    Task<IList<Event>> GetAllAsync(CancellationToken ct = default);
+
     Task AddAsync(Event entity, CancellationToken ct = default);
     void Update(Event entity);
     void Remove(Event entity);

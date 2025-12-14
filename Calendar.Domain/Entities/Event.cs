@@ -7,12 +7,11 @@ public class Event
 {
     public Guid Id { get; set; }
     public Guid OwnerId { get; set; }
-    public User Owner { get; set; } = default!;
 
     public string Title { get; set; } = default!;
     public string? Description { get; set; }
-    public DateTime StartTime { get; set; }   
-    public DateTime EndTime { get; set; }    
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
     public bool AllDay { get; set; } = false;
     public string? Location { get; set; }
 

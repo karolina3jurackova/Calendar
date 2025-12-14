@@ -11,6 +11,10 @@ public class EventService : IEventService
 
     public EventService(IEventRepository repo) => _repo = repo;
 
+    // =========================
+    // USER
+    // =========================
+
     public async Task<IList<EventListItemVM>> GetMyEventsAsync(Guid userId, CancellationToken ct = default)
     {
         EnsureValidUser(userId);
@@ -21,8 +25,8 @@ public class EventService : IEventService
         {
             Id = e.Id,
             Title = e.Title,
-            Start = e.StartTime,
-            End = e.EndTime
+            Start = FromUtcToLocal(e.StartTime),
+            End = FromUtcToLocal(e.EndTime)
         }).ToList();
     }
 
@@ -32,7 +36,6 @@ public class EventService : IEventService
 
         var e = await _repo.GetByIdAsync(id, ct);
         if (e == null) return null;
-
         if (e.OwnerId != userId) return null;
 
         return new EventDetailVM
@@ -40,28 +43,30 @@ public class EventService : IEventService
             Id = e.Id,
             Title = e.Title,
             Description = e.Description,
-            Start = e.StartTime,
-            End = e.EndTime
+            Start = FromUtcToLocal(e.StartTime),
+            End = FromUtcToLocal(e.EndTime)
         };
     }
 
     public async Task<Guid> CreateAsync(Guid userId, EventCreateVM vm, CancellationToken ct = default)
     {
         EnsureValidUser(userId);
-        ValidateDates(vm.Start, vm.End);
 
-        var now = DateTime.UtcNow;
+        // ✅ Service nerieši "minulosť" ani UI validáciu – to má byť vo VM (DataAnnotations + custom attribute)
+        ValidateDatesOrThrow(vm.Start, vm.End);
+
+        var nowUtc = DateTime.UtcNow;
 
         var entity = new Event
         {
             Id = Guid.NewGuid(),
             OwnerId = userId,
-            Title = (vm.Title ?? "").Trim(),
+            Title = vm.Title.Trim(),
             Description = vm.Description?.Trim(),
-            StartTime = vm.Start,
-            EndTime = vm.End,
-            DateCreated = now,
-            LastModified = now
+            StartTime = ToUtc(vm.Start),
+            EndTime = ToUtc(vm.End),
+            DateCreated = nowUtc,
+            LastModified = nowUtc
         };
 
         await _repo.AddAsync(entity, ct);
@@ -73,17 +78,17 @@ public class EventService : IEventService
     public async Task<bool> UpdateAsync(Guid id, Guid userId, EventEditVM vm, CancellationToken ct = default)
     {
         EnsureValidUser(userId);
-        ValidateDates(vm.Start, vm.End);
+
+        ValidateDatesOrThrow(vm.Start, vm.End);
 
         var entity = await _repo.GetByIdAsync(id, ct);
         if (entity == null) return false;
-
         if (entity.OwnerId != userId) return false;
 
-        entity.Title = (vm.Title ?? "").Trim();
+        entity.Title = vm.Title.Trim();
         entity.Description = vm.Description?.Trim();
-        entity.StartTime = vm.Start;
-        entity.EndTime = vm.End;
+        entity.StartTime = ToUtc(vm.Start);
+        entity.EndTime = ToUtc(vm.End);
         entity.LastModified = DateTime.UtcNow;
 
         _repo.Update(entity);
@@ -98,7 +103,6 @@ public class EventService : IEventService
 
         var entity = await _repo.GetByIdAsync(id, ct);
         if (entity == null) return false;
-
         if (entity.OwnerId != userId) return false;
 
         _repo.Remove(entity);
@@ -107,18 +111,118 @@ public class EventService : IEventService
         return true;
     }
 
-    // ----------------- helpers (private) -----------------
+    // ✅ JSON feed pre Home kalendár (site.js)
+    public async Task<IList<EventCalendarVM>> GetMyCalendarEventsAsync(Guid userId, CancellationToken ct = default)
+    {
+        EnsureValidUser(userId);
 
-    private static void ValidateDates(DateTime start, DateTime end)
+        var events = await _repo.GetForUserAsync(userId, ct);
+
+        return events.Select(e => new EventCalendarVM
+        {
+            Id = e.Id,
+            Title = e.Title,
+            Description = e.Description,
+            Start = FromUtcToLocal(e.StartTime),
+            End = FromUtcToLocal(e.EndTime)
+        }).ToList();
+    }
+
+    // =========================
+    // ADMIN
+    // =========================
+
+    public async Task<IList<AdminEventListItemVM>> AdminGetAllAsync(CancellationToken ct = default)
+    {
+        var events = await _repo.GetAllAsync(ct);
+
+        return events
+            .OrderByDescending(e => e.StartTime)
+            .Select(e => new AdminEventListItemVM
+            {
+                Id = e.Id,
+                Title = e.Title,
+                StartLocal = FromUtcToLocal(e.StartTime),
+                EndLocal = FromUtcToLocal(e.EndTime),
+                OwnerId = e.OwnerId
+            })
+            .ToList();
+    }
+
+    public async Task<AdminEventEditVM?> AdminGetEditAsync(Guid id, CancellationToken ct = default)
+    {
+        var e = await _repo.GetByIdAsync(id, ct);
+        if (e == null) return null;
+
+        return new AdminEventEditVM
+        {
+            Title = e.Title,
+            Description = e.Description,
+            Start = FromUtcToLocal(e.StartTime),
+            End = FromUtcToLocal(e.EndTime),
+            OwnerId = e.OwnerId
+        };
+    }
+
+    public async Task<bool> AdminUpdateAsync(Guid id, AdminEventEditVM vm, CancellationToken ct = default)
+    {
+        // Admin validácia: title + end>start
+        if (string.IsNullOrWhiteSpace(vm.Title)) return false;
+        if (vm.End <= vm.Start) return false;
+
+        var entity = await _repo.GetByIdAsync(id, ct);
+        if (entity == null) return false;
+
+        entity.Title = vm.Title.Trim();
+        entity.Description = vm.Description?.Trim();
+        entity.StartTime = ToUtc(vm.Start);
+        entity.EndTime = ToUtc(vm.End);
+        entity.OwnerId = vm.OwnerId;
+        entity.LastModified = DateTime.UtcNow;
+
+        _repo.Update(entity);
+        await _repo.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> AdminDeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var entity = await _repo.GetByIdAsync(id, ct);
+        if (entity == null) return false;
+
+        _repo.Remove(entity);
+        await _repo.SaveChangesAsync(ct);
+        return true;
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
+
+    private static void EnsureValidUser(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("Invalid user id.");
+    }
+
+    // Táto validácia je "core" (koniec musí byť po začiatku).
+    // Minulosť rieš custom attribute na VM (kvôli splneniu kritéria a UX).
+    private static void ValidateDatesOrThrow(DateTime start, DateTime end)
     {
         if (end <= start)
             throw new ArgumentException("End must be after Start.");
     }
 
-    private static void EnsureValidUser(Guid userId)
+    // datetime-local = lokálny čas bez timezone -> berieme ako Local a konvertujeme do UTC
+    private static DateTime ToUtc(DateTime localDateTime)
     {
-        // kým nemáš Identity napojené, toto ti zamedzí omylom používať Guid.Empty
-        if (userId == Guid.Empty)
-            throw new UnauthorizedAccessException("User is not authenticated.");
+        var local = DateTime.SpecifyKind(localDateTime, DateTimeKind.Local);
+        return local.ToUniversalTime();
+    }
+
+    private static DateTime FromUtcToLocal(DateTime utcDateTime)
+    {
+        var utc = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
+        return utc.ToLocalTime();
     }
 }

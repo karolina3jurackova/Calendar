@@ -4,24 +4,41 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Calendar.Infrastructure.Data.Configuration;
 
-public class EventConfiguration : IEntityTypeConfiguration<Event>
+public class EventConfigurations : IEntityTypeConfiguration<Event>
 {
-    public void Configure(EntityTypeBuilder<Event> b)
+    public void Configure(EntityTypeBuilder<Event> builder)
     {
-        b.HasKey(x => x.Id);
+        // PK
+        builder.HasKey(e => e.Id);
 
-        b.Property(x => x.Title).IsRequired().HasMaxLength(200);
+        // Title
+        builder.Property(e => e.Title)
+            .IsRequired()
+            .HasMaxLength(200);
 
-        b.Property(x => x.DateCreated).HasDefaultValueSql("CURRENT_TIMESTAMP");
-        b.Property(x => x.LastModified).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        // Description
+        builder.Property(e => e.Description)
+            .HasMaxLength(2000);
 
-        b.HasOne(x => x.Owner)
-         .WithMany(u => u.Events)
-         .HasForeignKey(x => x.OwnerId)
-         .OnDelete(DeleteBehavior.Restrict);
+        // Time
+        builder.Property(e => e.StartTime)
+            .IsRequired();
 
-        b.HasIndex(x => x.StartTime);
-        b.HasIndex(x => x.EndTime);
-        b.HasIndex(nameof(Event.OwnerId), nameof(Event.StartTime));
+        builder.Property(e => e.EndTime)
+            .IsRequired();
+
+        // Owner (Identity user ID – bez navigácie)
+        builder.Property(e => e.OwnerId)
+            .IsRequired();
+
+        // Index pre "moje eventy"
+        builder.HasIndex(e => e.OwnerId);
+
+        // Auditing
+        builder.Property(e => e.DateCreated)
+            .IsRequired();
+
+        builder.Property(e => e.LastModified)
+            .IsRequired();
     }
 }

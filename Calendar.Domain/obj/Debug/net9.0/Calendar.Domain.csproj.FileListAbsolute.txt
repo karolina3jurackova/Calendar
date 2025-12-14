@@ -16,8 +16,8 @@ D:/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/ref/Calendar.Domain.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.AssemblyInfoInputs.cache
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.AssemblyInfo.cs
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.csproj.CoreCompileInputs.cache
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.sourcelink.json
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/refint/Calendar.Domain.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.pdb
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/ref/Calendar.Domain.dll
-/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.sourcelink.json
