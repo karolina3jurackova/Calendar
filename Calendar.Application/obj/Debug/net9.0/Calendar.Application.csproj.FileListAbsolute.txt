@@ -28,3 +28,4 @@ D:/WebCalendarKJVJ/Calendar.Application/obj/Debug/net9.0/ref/Calendar.Applicatio
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Application/obj/Debug/net9.0/refint/Calendar.Application.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Application/obj/Debug/net9.0/Calendar.Application.pdb
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Application/obj/Debug/net9.0/ref/Calendar.Application.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Application/obj/Debug/net9.0/Calendar.Application.sourcelink.json

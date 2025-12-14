@@ -14,9 +14,10 @@ public class EventRepository : IEventRepository
     public Task<Event?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => _db.Events.FirstOrDefaultAsync(e => e.Id == id, ct);
 
-    public Task<IList<Event>> GetForUserAsync(Guid userId, CancellationToken ct = default)
-        => _db.Events.Where(e => e.OwnerId == userId).ToListAsync(ct)
-            .ContinueWith(t => (IList<Event>)t.Result, ct);
+    public async Task<IList<Event>> GetForUserAsync(Guid userId, CancellationToken ct = default)
+        => await _db.Events
+            .Where(e => e.OwnerId == userId)
+            .ToListAsync(ct);
 
     public Task AddAsync(Event entity, CancellationToken ct = default)
         => _db.Events.AddAsync(entity, ct).AsTask();

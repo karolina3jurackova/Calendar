@@ -36,3 +36,4 @@ D:/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/ref/Calendar.Infrast
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.pdb
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.genruntimeconfig.cache
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/ref/Calendar.Infrastructure.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.sourcelink.json

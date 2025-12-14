@@ -20,3 +20,4 @@ D:/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/ref/Calendar.Domain.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/refint/Calendar.Domain.dll
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.pdb
 /Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/ref/Calendar.Domain.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Domain/obj/Debug/net9.0/Calendar.Domain.sourcelink.json
