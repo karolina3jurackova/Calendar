@@ -1,23 +1,17 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Calendar.Application.Validation;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public sealed class NotPastDateAttribute : ValidationAttribute
+public sealed class NotInPastDateAttribute : ValidationAttribute
 {
-    public NotPastDateAttribute()
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        ErrorMessage = "Udalosť nemôže začať v minulosti.";
-    }
+        if (value is not DateTime dt)
+            return ValidationResult.Success;
 
-    public override bool IsValid(object? value)
-    {
-        if (value is null) return true; // Required rieši [Required]
+        if (dt < DateTime.Now)
+            return new ValidationResult(ErrorMessage ?? "Dátum nesmie byť v minulosti.");
 
-        if (value is not DateTime dt) return false;
-
-        // porovnávame v lokálnom čase (input z datetime-local je lokálny)
-        return dt >= DateTime.Now;
+        return ValidationResult.Success;
     }
 }

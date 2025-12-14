@@ -52,7 +52,7 @@ public class EventService : IEventService
     {
         EnsureValidUser(userId);
 
-        // ✅ Service nerieši "minulosť" ani UI validáciu – to má byť vo VM (DataAnnotations + custom attribute)
+        // core validácia (UI/DataAnnotations rieši minulosť)
         ValidateDatesOrThrow(vm.Start, vm.End);
 
         var nowUtc = DateTime.UtcNow;
@@ -166,7 +166,6 @@ public class EventService : IEventService
 
     public async Task<bool> AdminUpdateAsync(Guid id, AdminEventEditVM vm, CancellationToken ct = default)
     {
-        // Admin validácia: title + end>start
         if (string.IsNullOrWhiteSpace(vm.Title)) return false;
         if (vm.End <= vm.Start) return false;
 
@@ -205,15 +204,12 @@ public class EventService : IEventService
             throw new ArgumentException("Invalid user id.");
     }
 
-    // Táto validácia je "core" (koniec musí byť po začiatku).
-    // Minulosť rieš custom attribute na VM (kvôli splneniu kritéria a UX).
     private static void ValidateDatesOrThrow(DateTime start, DateTime end)
     {
         if (end <= start)
             throw new ArgumentException("End must be after Start.");
     }
 
-    // datetime-local = lokálny čas bez timezone -> berieme ako Local a konvertujeme do UTC
     private static DateTime ToUtc(DateTime localDateTime)
     {
         var local = DateTime.SpecifyKind(localDateTime, DateTimeKind.Local);

@@ -1,8 +1,11 @@
 using System.ComponentModel.DataAnnotations;
-using Calendar.Application.ViewModels.Validation;
+using Calendar.Application.Validation;
 
 namespace Calendar.Application.ViewModels;
 
+// =======================
+// LIST
+// =======================
 public sealed class EventListItemVM
 {
     public Guid Id { get; set; }
@@ -11,6 +14,9 @@ public sealed class EventListItemVM
     public DateTime End { get; set; }
 }
 
+// =======================
+// DETAIL
+// =======================
 public sealed class EventDetailVM
 {
     public Guid Id { get; set; }
@@ -20,6 +26,9 @@ public sealed class EventDetailVM
     public DateTime End { get; set; }
 }
 
+// =======================
+// CREATE / EDIT BASE
+// =======================
 public class EventCreateVM : IValidatableObject
 {
     [Required, StringLength(100)]
@@ -38,10 +47,18 @@ public class EventCreateVM : IValidatableObject
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (End <= Start)
-            yield return new ValidationResult("Koniec musí byť po začiatku.", new[] { nameof(End), nameof(Start) });
+        {
+            yield return new ValidationResult(
+                "Koniec musí byť po začiatku.",
+                new[] { nameof(Start), nameof(End) }
+            );
+        }
     }
 }
 
+// =======================
+// EDIT = CREATE
+// =======================
 public sealed class EventEditVM : EventCreateVM
 {
 }

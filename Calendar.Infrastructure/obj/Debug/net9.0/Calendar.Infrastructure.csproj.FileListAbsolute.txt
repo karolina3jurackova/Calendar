@@ -17,3 +17,23 @@ D:/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/refint/Calendar.Infr
 D:/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.pdb
 D:/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.genruntimeconfig.cache
 D:/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/ref/Calendar.Infrastructure.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Infrastructure.deps.json
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Infrastructure.runtimeconfig.json
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Infrastructure.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Infrastructure.pdb
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Application.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Domain.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Domain.pdb
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/bin/Debug/net9.0/Calendar.Application.pdb
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.csproj.AssemblyReference.cache
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.AssemblyInfoInputs.cache
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.AssemblyInfo.cs
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.csproj.CoreCompileInputs.cache
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.sourcelink.json
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.B9D46F5E.Up2Date
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/refint/Calendar.Infrastructure.dll
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.pdb
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/Calendar.Infrastructure.genruntimeconfig.cache
+/Users/karolinajurackova/Documents/veci z OD/VOgltanz/WebCalendarKJVJ/Calendar.Infrastructure/obj/Debug/net9.0/ref/Calendar.Infrastructure.dll
