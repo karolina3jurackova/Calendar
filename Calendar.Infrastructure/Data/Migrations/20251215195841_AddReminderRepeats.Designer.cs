@@ -3,6 +3,7 @@ using System;
 using Calendar.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Calendar.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215195841_AddReminderRepeats")]
+    partial class AddReminderRepeats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -66,40 +69,6 @@ namespace Calendar.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Events");
-                });
-
-            modelBuilder.Entity("Calendar.Domain.Entities.EventShare", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Access")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("SharedWithGroupId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("SharedWithUserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId", "SharedWithGroupId")
-                        .IsUnique()
-                        .HasFilter("SharedWithGroupId IS NOT NULL");
-
-                    b.HasIndex("EventId", "SharedWithUserId")
-                        .IsUnique()
-                        .HasFilter("SharedWithUserId IS NOT NULL");
-
-                    b.ToTable("EventShares", (string)null);
                 });
 
             modelBuilder.Entity("Calendar.Domain.Entities.Participant", b =>
@@ -191,9 +160,8 @@ namespace Calendar.Infrastructure.Data.Migrations
                     b.Property<Guid>("EventId")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("GroupKey")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<int>("GroupKey")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -201,54 +169,6 @@ namespace Calendar.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Shares");
-                });
-
-            modelBuilder.Entity("Calendar.Domain.Entities.ShareGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("ShareGroups", (string)null);
-                });
-
-            modelBuilder.Entity("Calendar.Domain.Entities.ShareGroupMember", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("AddedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("ShareGroupMembers", (string)null);
                 });
 
             modelBuilder.Entity("Calendar.Domain.Entities.User", b =>
@@ -488,17 +408,6 @@ namespace Calendar.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId");
                 });
 
-            modelBuilder.Entity("Calendar.Domain.Entities.EventShare", b =>
-                {
-                    b.HasOne("Calendar.Domain.Entities.Event", "Event")
-                        .WithMany("EventShares")
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-                });
-
             modelBuilder.Entity("Calendar.Domain.Entities.Participant", b =>
                 {
                     b.HasOne("Calendar.Domain.Entities.Event", "Event")
@@ -530,17 +439,6 @@ namespace Calendar.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Event");
-                });
-
-            modelBuilder.Entity("Calendar.Domain.Entities.ShareGroupMember", b =>
-                {
-                    b.HasOne("Calendar.Domain.Entities.ShareGroup", "Group")
-                        .WithMany("Members")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -596,18 +494,11 @@ namespace Calendar.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Calendar.Domain.Entities.Event", b =>
                 {
-                    b.Navigation("EventShares");
-
                     b.Navigation("Participants");
 
                     b.Navigation("Reminders");
 
                     b.Navigation("Shares");
-                });
-
-            modelBuilder.Entity("Calendar.Domain.Entities.ShareGroup", b =>
-                {
-                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Calendar.Domain.Entities.User", b =>

@@ -10,8 +10,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
 {
     public DbSet<Event> Events => Set<Event>();
     public DbSet<Participant> Participants => Set<Participant>();
-    public DbSet<Reminder> Reminders => Set<Reminder>();
     public DbSet<Share> Shares => Set<Share>();
+    public DbSet<Reminder> Reminders => Set<Reminder>();
+    public DbSet<EventShare> EventShares => Set<EventShare>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -19,12 +20,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     {
         base.OnModelCreating(modelBuilder);
 
-        // OwnerId ostáva len Guid bez FK na AspNetUsers (najjednoduchšie a čisté pre vrstvy)
         modelBuilder.Entity<Event>()
             .Property(e => e.OwnerId)
             .IsRequired();
 
-        // Ak máš konfigurácie cez IEntityTypeConfiguration, nechaj:
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

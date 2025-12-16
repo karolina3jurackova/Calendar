@@ -19,7 +19,6 @@
 
         string IsActive(string? area, string controller, string? action = null)
         {
-            // area match (null/empty znamená "mimo area")
             var areaMatch =
             string.IsNullOrWhiteSpace(area)
             ? string.IsNullOrWhiteSpace(currentArea)
@@ -77,12 +76,24 @@
                         }
                     </ul>
 
+                    @* ✅ IBA 1 SEARCH BAR + musí posielať Q *@
+                    @if (User?.Identity?.IsAuthenticated ?? false)
+                    {
+                        <form class="d-flex me-3" asp-area="" asp-controller="Events" asp-action="Search" method="get"
+                            role="search">
+                            <input class="form-control form-control-sm me-2" type="search" name="Q"
+                                value="@Context.Request.Query["Q"]" placeholder="Hľadať udalosti..." aria-label="Search" />
+                            <button class="btn btn-outline-primary btn-sm" type="submit">Search</button>
+                        </form>
+                    }
+
                     <ul class="navbar-nav">
                         @if (User?.Identity?.IsAuthenticated ?? false)
                         {
                             <li class="nav-item">
                                 <span class="navbar-text me-2">@User.Identity!.Name</span>
                             </li>
+
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
@@ -102,6 +113,7 @@
                             </li>
                         }
                     </ul>
+
                 </div>
             </div>
         </nav>

@@ -21,7 +21,10 @@ public class Event
 
     public ICollection<Participant> Participants { get; set; } = new List<Participant>();
     public ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
+
     public ICollection<Share> Shares { get; set; } = new List<Share>();
+
+    public ICollection<EventShare> EventShares { get; set; } = new List<EventShare>();
 
     [NotMapped] public List<DateTime> SkipDates { get; set; } = new();
 }

@@ -11,46 +11,60 @@
     }
 
     // ========================
-    // Grab elements (may be null on non-calendar pages)
+    // Notification helpers (1F)
+    // ========================
+    async function ensureNotificationPermission() {
+        if (!("Notification" in window)) {
+            console.warn("Browser nepodporuje notifikácie");
+            return false;
+        }
+
+        if (Notification.permission === "granted") return true;
+
+        if (Notification.permission !== "denied") {
+            const perm = await Notification.requestPermission();
+            return perm === "granted";
+        }
+
+        return false;
+    }
+
+    function showNotification(title, body) {
+        if (Notification.permission !== "granted") return;
+
+        new Notification(title, {
+            body,
+            icon: "/favicon.ico"
+        });
+    }
+
+    // ========================
+    // Grab elements
     // ========================
     const grid = $("grid");
-
-    // Guard: ak na stránke nie je kalendár, skript nič nerobí
     if (!grid) {
         console.debug("site.js: calendar UI not present -> skipping.");
         return;
     }
 
     const monthLabel = $("monthLabel");
-
     const prevBtn = $("prevBtn");
     const nextBtn = $("nextBtn");
     const todayBtn = $("todayBtn");
     const newBtn = $("newBtn");
-
     const selectedLabel = $("selectedLabel");
     const dayEventsEl = $("dayEvents");
 
-    // (modal prvky môžu existovať, ale už ich nepoužívame na ukladanie do localStorage)
-    const overlay = $("modalOverlay");
-    const modalTitle = $("modalTitle");
-    const titleInput = $("eventTitle");
-    const dateInput = $("eventDate");
-    const descInput = $("eventDesc");
-    const saveBtn = $("saveBtn");
-    const cancelBtn = $("cancelBtn");
-    const deleteBtn = $("deleteBtn");
-
-    // Ak chýbajú kľúčové prvky, skonči
     if (!monthLabel || !selectedLabel || !dayEventsEl) {
         console.debug("site.js: some calendar elements missing -> skipping.");
         return;
     }
 
     // ========================
-    // Calendar logic (DB-backed)
+    // Calendar state
     // ========================
-    let eventsCache = []; // { id, title, description, start, end } (start/end ISO string)
+    let eventsCache = [];
+    let remindersScheduled = false;
 
     let current = new Date();
     current.setHours(0, 0, 0, 0);
@@ -69,35 +83,71 @@
         return new Date(d.getFullYear(), d.getMonth(), 1);
     }
 
-    function toLocalDateStr(isoOrDate) {
-        // api vracia DateTime -> JSON typicky "2025-12-21T19:00:00"
-        // potrebujeme len yyyy-mm-dd (v lokále)
-        const dt = new Date(isoOrDate);
-        return isoDate(dt);
+    function toLocalDateStr(iso) {
+        return isoDate(new Date(iso));
     }
 
     function formatTimeRange(ev) {
         const s = new Date(ev.start);
         const e = new Date(ev.end);
-        const sTime = `${pad2(s.getHours())}:${pad2(s.getMinutes())}`;
-        const eTime = `${pad2(e.getHours())}:${pad2(e.getMinutes())}`;
-        return `${sTime}–${eTime}`;
+        return `${pad2(s.getHours())}:${pad2(s.getMinutes())}–${pad2(e.getHours())}:${pad2(e.getMinutes())}`;
     }
 
+    // ========================
+    // API
+    // ========================
     async function loadEventsFromApi() {
+        const res = await fetch("/api/my-events", { headers: { Accept: "application/json" } });
+        eventsCache = res.ok ? await res.json() : [];
+    }
+
+    async function loadRemindersAndSchedule() {
+        if (remindersScheduled) return;
+
+        const allowed = await ensureNotificationPermission();
+        if (!allowed) return;
+
         try {
-            const res = await fetch("/api/my-events", {
+            const res = await fetch("/api/my-reminders", {
                 headers: { Accept: "application/json" }
             });
 
-            if (!res.ok) throw new Error(`Failed to load events: ${res.status}`);
+            if (!res.ok) return;
 
-            const data = await res.json();
-            // očakávame: [{ id, title, description, start, end }]
-            eventsCache = Array.isArray(data) ? data : [];
+            const reminders = await res.json();
+            const now = Date.now();
+
+            reminders.forEach(r => {
+                const fireAt = new Date(r.fireAtUtc).getTime();
+                const delay = fireAt - now;
+
+                if (delay <= 0) return;
+
+                setTimeout(() => {
+                    showNotification(r.eventTitle, r.message ?? "Pripomienka udalosti");
+
+                    // ✅ opakovanie (ak príde z API)
+                    const everyMin = Number(r.repeatEveryMinutes || 0);
+                    let left = Number(r.repeatCountLeft || 0);
+
+                    if (everyMin > 0 && left > 0) {
+                        const intervalMs = everyMin * 60_000;
+
+                        const tick = () => {
+                            if (left <= 0) return;
+                            left -= 1;
+                            showNotification(r.eventTitle, "Opakovaná pripomienka");
+                            if (left > 0) setTimeout(tick, intervalMs);
+                        };
+
+                        setTimeout(tick, intervalMs);
+                    }
+                }, delay);
+            });
+
+            remindersScheduled = true;
         } catch (e) {
-            console.error(e);
-            eventsCache = [];
+            console.error("Failed to schedule reminders", e);
         }
     }
 
@@ -106,7 +156,7 @@
     }
 
     // ========================
-    // Buttons / events
+    // Buttons
     // ========================
     on(prevBtn, "click", async () => {
         current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
@@ -125,23 +175,9 @@
         await renderAll();
     });
 
-    // „Nová udalosť“ -> redirect na MVC Create (DB)
     on(newBtn, "click", () => {
         const dayStr = isoDate(selected);
         window.location.href = `/Events/Create?date=${encodeURIComponent(dayStr)}`;
-    });
-
-    // Ak máš modal v HTML a nechceš ho, aspoň ho nezobrazuj
-    on(cancelBtn, "click", () => {
-        if (overlay) overlay.classList.add("hidden");
-    });
-    on(saveBtn, "click", () => {
-        // už sa tu neukladá nič do localStorage
-        // nechávame prázdne schválne (alebo môžeš tlačidlo odstrániť z HTML)
-        alert("Vytváranie udalostí prebieha cez stránku Events → Create.");
-    });
-    on(deleteBtn, "click", () => {
-        alert("Mazanie udalostí prebieha cez Events → Delete.");
     });
 
     // ========================
@@ -167,11 +203,10 @@
         evs.forEach(ev => {
             const row = document.createElement("div");
             row.className = "row";
+            row.innerHTML = `<strong>${ev.title}</strong>
+                <small class="text-muted">${formatTimeRange(ev)}</small><br>
+                <small>${ev.description || ""}</small>`;
 
-            const time = formatTimeRange(ev);
-            row.innerHTML = `<strong>${ev.title}</strong> <small class="text-muted">${time}</small><br><small>${ev.description || ""}</small>`;
-
-            // klik -> otvor Details v MVC
             row.addEventListener("click", () => {
                 window.location.href = `/Events/Details/${ev.id}`;
             });
@@ -191,21 +226,16 @@
             year: "numeric"
         });
 
-        // Začiatok mriežky = pondelok v týždni, kde je 1. deň mesiaca
         const firstOfMonth = new Date(y, m, 1);
-        const startOffset = (firstOfMonth.getDay() + 6) % 7; // Po=0
+        const startOffset = (firstOfMonth.getDay() + 6) % 7;
         const gridStart = new Date(y, m, 1 - startOffset);
 
-        // 42 buniek (6 týždňov)
         for (let i = 0; i < 42; i++) {
             const date = new Date(gridStart);
             date.setDate(gridStart.getDate() + i);
 
-            const dayStr = isoDate(date);
-            const inCurrentMonth = date.getMonth() === m;
-
             const cell = document.createElement("div");
-            cell.className = "day" + (inCurrentMonth ? "" : " outside");
+            cell.className = "day" + (date.getMonth() === m ? "" : " outside");
 
             if (isoDate(date) === isoDate(selected)) {
                 cell.classList.add("selected");
@@ -213,40 +243,33 @@
 
             cell.innerHTML = `<div class="dayNumber">${date.getDate()}</div>`;
 
-            // events (max 2)
-            const evs = eventsForDate(dayStr).slice(0, 2);
-            evs.forEach(ev => {
+            eventsForDate(isoDate(date)).slice(0, 2).forEach(ev => {
                 const it = document.createElement("div");
                 it.className = "eventItem";
                 it.textContent = ev.title;
 
-                it.addEventListener("click", (e) => {
+                it.onclick = e => {
                     e.stopPropagation();
                     window.location.href = `/Events/Details/${ev.id}`;
-                });
+                };
 
                 cell.appendChild(it);
             });
 
-            // klik = vybrat deň
-            cell.addEventListener("click", async () => {
+            cell.onclick = async () => {
                 selected = new Date(date);
-
-                if (!inCurrentMonth) {
+                if (date.getMonth() !== m) {
                     current = monthStart(date);
                     await renderAll();
                     return;
                 }
-
                 renderCalendar();
                 renderSidebar();
-            });
+            };
 
-            // dvojklik = Create
-            cell.addEventListener("dblclick", () => {
-                const d = isoDate(date);
-                window.location.href = `/Events/Create?date=${encodeURIComponent(d)}`;
-            });
+            cell.ondblclick = () => {
+                window.location.href = `/Events/Create?date=${encodeURIComponent(isoDate(date))}`;
+            };
 
             grid.appendChild(cell);
         }
@@ -257,6 +280,7 @@
         await loadEventsFromApi();
         renderCalendar();
         renderSidebar();
+        loadRemindersAndSchedule(); // ✅ 1F
     }
 
     renderAll();

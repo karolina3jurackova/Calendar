@@ -10,9 +10,22 @@ public interface IEventService
     Task<Guid> CreateAsync(Guid userId, EventCreateVM vm, CancellationToken ct = default);
     Task<bool> UpdateAsync(Guid id, Guid userId, EventEditVM vm, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct = default);
+
     Task<IList<EventCalendarVM>> GetMyCalendarEventsAsync(Guid userId, CancellationToken ct = default);
+
+    // ADMIN
     Task<IList<AdminEventListItemVM>> AdminGetAllAsync(CancellationToken ct = default);
     Task<AdminEventEditVM?> AdminGetEditAsync(Guid id, CancellationToken ct = default);
     Task<bool> AdminUpdateAsync(Guid id, AdminEventEditVM vm, CancellationToken ct = default);
     Task<bool> AdminDeleteAsync(Guid id, CancellationToken ct = default);
+
+    // SEARCH
+    Task<IList<EventListItemVM>> SearchMyEventsAsync(Guid userId, EventSearchQueryVM q, CancellationToken ct = default);
+
+    // REMINDERS
+    Task<bool> AddReminderAsync(Guid eventId, Guid userId, ReminderCreateVM vm, CancellationToken ct = default);
+    Task<bool> DeleteReminderAsync(Guid reminderId, Guid userId, CancellationToken ct = default);
+
+    // ✅ API pre site.js
+    Task<IList<ReminderNotifyVM>> GetMyRemindersAsync(Guid userId, CancellationToken ct = default);
 }

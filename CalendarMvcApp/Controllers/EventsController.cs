@@ -27,9 +27,7 @@ public class EventsController : Controller
         return user.Id;
     }
 
-    // ======================
     // LIST
-    // ======================
     public async Task<IActionResult> Index()
     {
         var userId = await GetCurrentUserIdAsync();
@@ -37,9 +35,7 @@ public class EventsController : Controller
         return View(vm);
     }
 
-    // ======================
     // DETAILS
-    // ======================
     public async Task<IActionResult> Details(Guid id)
     {
         var userId = await GetCurrentUserIdAsync();
@@ -48,10 +44,7 @@ public class EventsController : Controller
         return View(vm);
     }
 
-    // ======================
-    // CREATE (GET)  ✅ napojené na Home kalendár
-    // /Events/Create?date=YYYY-MM-DD
-    // ======================
+    // CREATE (GET) /Events/Create?date=YYYY-MM-DD
     [HttpGet]
     public IActionResult Create(string? date)
     {
@@ -67,7 +60,6 @@ public class EventsController : Controller
             });
         }
 
-        // default keď prídeš ručne
         return View(new EventCreateVM
         {
             Start = DateTime.Now.AddMinutes(15),
@@ -95,9 +87,7 @@ public class EventsController : Controller
         }
     }
 
-    // ======================
     // API pre Home kalendár
-    // ======================
     [HttpGet]
     [Route("api/my-events")]
     public async Task<IActionResult> MyEventsApi()
@@ -107,9 +97,7 @@ public class EventsController : Controller
         return Ok(items);
     }
 
-    // ======================
     // EDIT (GET)
-    // ======================
     [HttpGet]
     public async Task<IActionResult> Edit(Guid id)
     {
@@ -156,9 +144,7 @@ public class EventsController : Controller
         }
     }
 
-    // ======================
     // DELETE (GET confirm)
-    // ======================
     [HttpGet]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -178,5 +164,14 @@ public class EventsController : Controller
         if (!ok) return NotFound();
 
         return RedirectToAction(nameof(Index));
+    }
+
+    // SEARCH (GET) /Events/Search?Text=...&From=...&To=...
+    [HttpGet]
+    public async Task<IActionResult> Search([FromQuery] EventSearchQueryVM query)
+    {
+        var userId = await GetCurrentUserIdAsync();
+        var results = await _service.SearchMyEventsAsync(userId, query);
+        return View(results);
     }
 }

@@ -9,11 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+
 namespace Calendar.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
@@ -25,7 +28,6 @@ public static class DependencyInjection
                 options.Password.RequiredLength = 6;
                 options.User.RequireUniqueEmail = true;
 
-                // voliteľné:
                 options.Password.RequireDigit = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireNonAlphanumeric = false;
@@ -40,6 +42,7 @@ public static class DependencyInjection
         });
 
         // Repositories
+        services.AddScoped<IUserLookupRepository, UserLookupRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
 
         // Application services

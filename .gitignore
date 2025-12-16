@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# VS/Rider
+.vs/
+.idea/
+
+# Local DB
+*.db

@@ -8,6 +8,6 @@ public class Share
     public Guid EventId { get; set; }
     public Event Event { get; set; } = default!;
 
-    public ShareGroup GroupKey { get; set; }
+    public required string GroupKey { get; set; }
     public DateTime DateCreated { get; set; }
 }
