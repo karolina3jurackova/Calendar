@@ -39,13 +39,12 @@ public class EventService : IEventService
     {
         EnsureValidUser(userId);
 
-        // ✅ dôležité: musí to fungovať aj pre zdieľaného usera
-        // Najjednoduchšie (a spoľahlivé bez Include): zober "moje udalosti" (owner + shared) a nájdi podľa Id
+        // owner + shared
         var myEvents = await _repo.GetForUserAsync(userId, ct);
         var e = myEvents.FirstOrDefault(x => x.Id == id);
         if (e == null) return null;
 
-        // Reminders zatiaľ ukazuj len ownerovi (jednoduché pravidlo)
+        // Reminders ukazujeme iba ownerovi 
         var forEvent = new List<ReminderItemVM>();
         if (e.OwnerId == userId)
         {
@@ -78,6 +77,10 @@ public class EventService : IEventService
         };
     }
 
+    // =========================
+    // CREATE / UPDATE / DELETE
+    // =========================
+
     public async Task<Guid> CreateAsync(Guid userId, EventCreateVM vm, CancellationToken ct = default)
     {
         EnsureValidUser(userId);
@@ -88,7 +91,7 @@ public class EventService : IEventService
         var entity = new Event
         {
             Id = Guid.NewGuid(),
-            OwnerId = userId, // ✅ owner sa nastavuje automaticky (aktuálny user)
+            OwnerId = userId,
             Title = vm.Title.Trim(),
             Description = vm.Description?.Trim(),
             StartTime = ToUtc(vm.Start),
@@ -100,9 +103,28 @@ public class EventService : IEventService
         await _repo.AddAsync(entity, ct);
         await _repo.SaveChangesAsync(ct);
 
-        // ✅ zdieľanie podľa emailu
+        // sharing podľa emailu
         var sharedUserIds = await ResolveUserIdsFromEmailsAsync(vm.ShareWithEmails, userId, ct);
         await _repo.ReplaceEventSharesAsync(entity.Id, sharedUserIds, ct);
+
+        if (HasExplicitTime(vm.Start, vm.End))
+        {
+            var autoReminder = new Reminder
+            {
+                Id = Guid.NewGuid(),
+                EventId = entity.Id,
+                Type = ReminderType.AbsoluteUtc,
+                Channel = ReminderChannel.Browser,
+                MinutesBefore = null,
+                AbsoluteUtc = entity.StartTime,
+                FireAtUtc = entity.StartTime,
+                IsSent = false,
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            await _repo.AddReminderAsync(autoReminder, ct);
+            await _repo.SaveChangesAsync(ct);
+        }
 
         return entity.Id;
     }
@@ -114,8 +136,6 @@ public class EventService : IEventService
 
         var entity = await _repo.GetByIdAsync(id, ct);
         if (entity == null) return false;
-
-        // ✅ upravovať môže iba owner
         if (entity.OwnerId != userId) return false;
 
         entity.Title = vm.Title.Trim();
@@ -127,9 +147,41 @@ public class EventService : IEventService
         _repo.Update(entity);
         await _repo.SaveChangesAsync(ct);
 
-        // ✅ prepíš zdieľania
         var sharedUserIds = await ResolveUserIdsFromEmailsAsync(vm.ShareWithEmails, userId, ct);
         await _repo.ReplaceEventSharesAsync(entity.Id, sharedUserIds, ct);
+
+        // AUTO-REMINDER
+        var myReminders = await _repo.GetRemindersForUserAsync(userId, ct);
+        var toDelete = myReminders
+            .Where(r =>
+                r.EventId == entity.Id &&
+                r.Channel == ReminderChannel.Browser &&
+                r.Type == ReminderType.AbsoluteUtc)
+            .ToList();
+
+        foreach (var r in toDelete)
+            _repo.RemoveReminder(r);
+
+        await _repo.SaveChangesAsync(ct);
+
+        if (HasExplicitTime(vm.Start, vm.End))
+        {
+            var newAuto = new Reminder
+            {
+                Id = Guid.NewGuid(),
+                EventId = entity.Id,
+                Type = ReminderType.AbsoluteUtc,
+                Channel = ReminderChannel.Browser,
+                MinutesBefore = null,
+                AbsoluteUtc = entity.StartTime,
+                FireAtUtc = entity.StartTime,
+                IsSent = false,
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            await _repo.AddReminderAsync(newAuto, ct);
+            await _repo.SaveChangesAsync(ct);
+        }
 
         return true;
     }
@@ -140,8 +192,6 @@ public class EventService : IEventService
 
         var entity = await _repo.GetByIdAsync(id, ct);
         if (entity == null) return false;
-
-        // ✅ mazať môže iba owner
         if (entity.OwnerId != userId) return false;
 
         _repo.Remove(entity);
@@ -156,7 +206,7 @@ public class EventService : IEventService
 
         var events = await _repo.GetForUserAsync(userId, ct);
 
-        // reminders zatiaľ iba ownerove, aby sa to nerozbíjalo na shared eventoch
+        // reminders len ownerove 
         var reminders = await _repo.GetRemindersForUserAsync(userId, ct);
 
         var remByEvent = reminders
@@ -196,10 +246,9 @@ public class EventService : IEventService
         if (!string.IsNullOrWhiteSpace(q.Q))
         {
             var term = q.Q.Trim().ToLowerInvariant();
-
-            // Title (a môžeš pridať aj Description, ak chceš)
             query = query.Where(e =>
-                (e.Title ?? "").ToLowerInvariant().Contains(term)
+                (e.Title ?? "").ToLowerInvariant().Contains(term) ||
+                (e.Description ?? "").ToLowerInvariant().Contains(term)
             );
         }
 
@@ -222,7 +271,7 @@ public class EventService : IEventService
     }
 
     // =========================
-    // REMINDERS
+    // REMINDERS (API pre site.js)
     // =========================
 
     public async Task<IList<ReminderNotifyVM>> GetMyRemindersAsync(Guid userId, CancellationToken ct = default)
@@ -232,8 +281,17 @@ public class EventService : IEventService
         var reminders = await _repo.GetRemindersForUserAsync(userId, ct);
         var nowUtc = DateTime.UtcNow;
 
+        // (okno -10s až +20s, aby to fungovalo aj s pollingom každých 10s)
+        var fromUtc = nowUtc.AddSeconds(-10);
+        var toUtc = nowUtc.AddSeconds(20);
+
         return reminders
-            .Where(r => !r.IsSent && r.FireAtUtc > nowUtc)
+            .Where(r =>
+                !r.IsSent &&
+                r.Channel == ReminderChannel.Browser &&
+                r.FireAtUtc >= fromUtc &&
+                r.FireAtUtc <= toUtc
+            )
             .OrderBy(r => r.FireAtUtc)
             .Select(r => new ReminderNotifyVM
             {
@@ -254,8 +312,6 @@ public class EventService : IEventService
 
         var ev = await _repo.GetByIdAsync(eventId, ct);
         if (ev == null) return false;
-
-        // ✅ reminders môže robiť iba owner (jednoduché pravidlo)
         if (ev.OwnerId != userId) return false;
 
         DateTime fireAtUtc;
@@ -298,12 +354,26 @@ public class EventService : IEventService
 
         var r = await _repo.GetReminderByIdAsync(reminderId, ct);
         if (r == null) return false;
-
-        // ✅ reminders môže mazať iba owner eventu
         if (r.Event.OwnerId != userId) return false;
 
         _repo.RemoveReminder(r);
         await _repo.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> MarkReminderAsSentAsync(Guid reminderId, Guid userId, CancellationToken ct = default)
+    {
+        EnsureValidUser(userId);
+
+        var reminder = await _repo.GetReminderByIdAsync(reminderId, ct);
+        if (reminder == null) return false;
+
+        if (reminder.Event.OwnerId != userId) return false;
+        if (reminder.IsSent) return true;
+
+        reminder.IsSent = true;
+        await _repo.SaveChangesAsync(ct);
+
         return true;
     }
 
@@ -394,7 +464,6 @@ public class EventService : IEventService
 
         var ids = await _userLookup.GetUserIdsByEmailsAsync(emailList, ct);
 
-        // ✅ nezdieľať sám so sebou
         return ids
             .Where(x => x != ownerId)
             .Distinct()
@@ -404,6 +473,12 @@ public class EventService : IEventService
     // =========================
     // HELPERS
     // =========================
+
+    private static bool HasExplicitTime(DateTime startLocal, DateTime endLocal)
+    {
+        // Ak user nevyplní čas, typicky skončíš na 00:00.
+        return startLocal.TimeOfDay != TimeSpan.Zero || endLocal.TimeOfDay != TimeSpan.Zero;
+    }
 
     private static void EnsureValidUser(Guid userId)
     {

@@ -11,7 +11,6 @@ public sealed class ReminderItemVM
 
     public int? MinutesBefore { get; set; }
 
-    // lokálny čas (service konvertuje z FireAtUtc)
     public DateTime FireAtLocal { get; set; }
 
     public bool IsSent { get; set; }

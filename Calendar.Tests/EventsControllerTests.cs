@@ -55,15 +55,8 @@ public class EventsControllerTests
         var repo = new EventRepository(db);
         var service = new EventService(repo);
 
-        // Controller potrebuje UserManager, ale GetCurrentUserIdAsync číta z User Claims
-        // Preto spravíme malý "test controller" s override, alebo jednoduchšie:
-        // -> otestujeme service priamo (ale učiteľ chce controller).
-        // Minimal: sprav si v controlleri helper TryGetCurrentUserId() z claims (už si mala),
-        // a v teste nastav claims principal.
-
         var controller = new EventsController(service, userManager);
 
-        // nastav User na controller
         controller.ControllerContext = TestHelpers.CreateControllerContextWithUserId(user.Id);
 
         var result = await controller.Index();

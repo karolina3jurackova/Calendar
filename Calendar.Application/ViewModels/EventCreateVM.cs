@@ -17,14 +17,18 @@ public class EventCreateVM : IValidatableObject
 
     [Required]
     public DateTime End { get; set; }
+
     public string? ShareWithEmails { get; set; }
 
+    // VALIDATION
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (End <= Start)
+        {
             yield return new ValidationResult(
                 "Koniec musí byť po začiatku.",
-                new[] { nameof(End), nameof(Start) }
+                new[] { nameof(End) }
             );
+        }
     }
 }

@@ -7,96 +7,75 @@
 
 <form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
-
     <div asp-validation-summary="All" class="text-danger"></div>
 
     <div class="mb-3">
         <label asp-for="Title" class="form-label"></label>
         <input asp-for="Title" class="form-control" />
-        <span asp-validation-for="Title" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
         <label asp-for="Description" class="form-label"></label>
         <textarea asp-for="Description" class="form-control"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
     </div>
 
-    <!-- Date (required) -->
-    <div class="mb-3">
-        <label class="form-label">Date</label>
-        <input id="date" type="date" class="form-control" required />
-        <div class="form-text">Stačí vybrať deň. Čas je voliteľný.</div>
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">Zdieľať s (emaily)</label>
-        <input class="form-control" name="ShareWithEmails" value="@Model.ShareWithEmails"
-            placeholder="napr. a@a.com; b@b.com" />
-        <div class="form-text">Oddeluj ; alebo ,</div>
-    </div>
-
-    <!-- Time (optional) -->
     <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Start time (optional)</label>
-            <input id="startTime" type="time" class="form-control" />
+        <div class="col-md-6">
+            <label class="form-label">Start date</label>
+            <input id="startDate" type="date" class="form-control" required />
         </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">End time (optional)</label>
-            <input id="endTime" type="time" class="form-control" />
+        <div class="col-md-6">
+            <label class="form-label">Start time</label>
+            <input id="startTime" type="time" class="form-control" value="09:00" />
         </div>
     </div>
 
-    <!-- Hidden fields bound to VM (datetime-local) -->
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <label class="form-label">End date</label>
+            <input id="endDate" type="date" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">End time</label>
+            <input id="endTime" type="time" class="form-control" value="10:00" />
+        </div>
+    </div>
+
+    <div class="mb-3 mt-3">
+        <label class="form-label">Zdieľať s (emaily)</label>
+        <input asp-for="ShareWithEmails" class="form-control" placeholder="napr. a@a.com; b@b.com" />
+    </div>
+
+    <!-- hidden fields -->
     <input asp-for="Start" id="Start" type="hidden" />
     <input asp-for="End" id="End" type="hidden" />
 
-    <button class="btn btn-primary" type="submit">Save</button>
+    <button class="btn btn-primary mt-3" type="submit">Save</button>
 </form>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+<script>
+    function sync() {
+        const sd = document.getElementById("startDate").value;
+        const st = document.getElementById("startTime").value || "09:00";
 
-    <script>
-        // Default times when user doesn't fill time
-        const DEFAULT_START = "09:00";
-        const DEFAULT_END = "10:00";
+        let ed = document.getElementById("endDate").value;
+        const et = document.getElementById("endTime").value || "10:00";
 
-        function pad2(n) { return n.toString().padStart(2, "0"); }
+        if (!sd) return;
 
-        function todayIsoDate() {
-            const d = new Date();
-            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-        }
+        // ak endDate nie je zadaný → rovnaký deň
+        if (!ed) ed = sd;
 
-        function toDateTimeLocal(dateStr, timeStr) {
-            // returns "yyyy-MM-ddTHH:mm" (format for datetime-local)
-            return `${dateStr}T${timeStr}`;
-        }
+        document.getElementById("Start").value = `${sd}T${st}`;
+        document.getElementById("End").value = `${ed}T${et}`;
+    }
 
-        function syncHiddenFields() {
-            const date = document.getElementById("date").value;
-            if (!date) return;
+    document.querySelectorAll("input").forEach(i =>
+        i.addEventListener("change", sync)
+    );
 
-            const sTime = document.getElementById("startTime").value || DEFAULT_START;
-            const eTime = document.getElementById("endTime").value || DEFAULT_END;
-
-            document.getElementById("Start").value = toDateTimeLocal(date, sTime);
-            document.getElementById("End").value = toDateTimeLocal(date, eTime);
-        }
-
-        // init defaults
-        document.getElementById("date").value = todayIsoDate();
-        syncHiddenFields();
-
-        document.getElementById("date").addEventListener("change", syncHiddenFields);
-        document.getElementById("startTime").addEventListener("change", syncHiddenFields);
-        document.getElementById("endTime").addEventListener("change", syncHiddenFields);
-
-        // before submit ensure hidden fields are filled
-        document.querySelector("form").addEventListener("submit", function () {
-            syncHiddenFields();
-        });
-    </script>
-}
+    // init
+    const today = new Date().toISOString().substring(0, 10);
+    document.getElementById("startDate").value = today;
+    sync();
+</script>

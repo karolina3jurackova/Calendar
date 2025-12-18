@@ -20,10 +20,10 @@ public sealed class AdminEventEditVM
     public string? Description { get; set; }
 
     [Required]
-    public DateTime Start { get; set; }  // local (UI)
+    public DateTime Start { get; set; }
 
     [Required]
-    public DateTime End { get; set; }    // local (UI)
+    public DateTime End { get; set; }
 
-    public Guid OwnerId { get; set; } // admin môže meniť owner (voliteľne)
+    public Guid OwnerId { get; set; }
 }

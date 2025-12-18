@@ -2,8 +2,8 @@ namespace Calendar.Domain.Entities;
 
 public enum ReminderType
 {
-    RelativeMinutesBefore = 1, // napr. 10 min pred
-    AbsoluteUtc = 2            // konkrétny UTC čas
+    RelativeMinutesBefore = 1,
+    AbsoluteUtc = 2
 }
 
 public enum ReminderChannel

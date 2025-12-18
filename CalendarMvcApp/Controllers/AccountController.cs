@@ -8,8 +8,8 @@ namespace CalendarMvcApp.Controllers;
 
 public class AccountController : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<ApplicationUser> _userManager;     // práca s používateľmi (create, role, find...)
+    private readonly SignInManager<ApplicationUser> _signInManager; // prihlasovanie/odhlasovanie (cookies)
 
     public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
@@ -17,47 +17,50 @@ public class AccountController : Controller
         _signInManager = signInManager;
     }
 
+    // zobrazí formulár)
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Register() => View(new RegisterVM());
 
+    // vytvorí usera, dá rolu, prihlási)
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterVM vm)
     {
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid) return View(vm); // serverová validácia
 
         var user = new ApplicationUser
         {
-            UserName = vm.Email,
+            UserName = vm.Email, //tu dávame email
             Email = vm.Email
         };
 
-        var result = await _userManager.CreateAsync(user, vm.Password);
+        var result = await _userManager.CreateAsync(user, vm.Password); // vytvorenie účtu + hash hesla
         if (!result.Succeeded)
         {
             foreach (var e in result.Errors)
                 ModelState.AddModelError(string.Empty, e.Description);
 
-            return View(vm); // <- vráť RegisterVM, nie LoginVM
+            return View(vm);
         }
 
-        // default rola po registrácii
-        await _userManager.AddToRoleAsync(user, "Customer");
+        await _userManager.AddToRoleAsync(user, "Customer"); // default rola po registrácii
 
-        await _signInManager.SignInAsync(user, isPersistent: false);
-        return RedirectToAction("Index", "Events");
+        await _signInManager.SignInAsync(user, isPersistent: false); // prihlásenie hneď po registrácii
+        return RedirectToAction("Index", "Events"); // po prihlásení ide na kalendár
     }
 
+    // LOGIN - GET 
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
     {
-        ViewBag.ReturnUrl = returnUrl;
+        ViewBag.ReturnUrl = returnUrl; // kam sa má user vrátiť po login
         return View(new LoginVM());
     }
 
+    // LOGIN - POST (overí heslo, prihlási cookie)
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -80,6 +83,7 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Events");
     }
 
+    // LOGOUT 
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -89,6 +93,7 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    // ACCESS DENIED (keď nemá rolu/práva)
     [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied() => View();

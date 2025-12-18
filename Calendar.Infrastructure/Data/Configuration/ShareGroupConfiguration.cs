@@ -20,6 +20,7 @@ public sealed class ShareGroupConfiguration : IEntityTypeConfiguration<ShareGrou
 
 public sealed class ShareGroupMemberConfiguration : IEntityTypeConfiguration<ShareGroupMember>
 {
+    //nevyužívame
     public void Configure(EntityTypeBuilder<ShareGroupMember> b)
     {
         b.ToTable("ShareGroupMembers");

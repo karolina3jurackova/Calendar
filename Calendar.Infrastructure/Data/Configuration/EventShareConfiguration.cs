@@ -20,12 +20,11 @@ public sealed class EventShareConfiguration : IEntityTypeConfiguration<EventShar
             .HasForeignKey(x => x.EventId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // unikátne len ak SharedWithUserId nie je null
+        // nevyužívané
         b.HasIndex(x => new { x.EventId, x.SharedWithUserId })
             .IsUnique()
             .HasFilter("SharedWithUserId IS NOT NULL");
 
-        // unikátne len ak SharedWithGroupId nie je null
         b.HasIndex(x => new { x.EventId, x.SharedWithGroupId })
             .IsUnique()
             .HasFilter("SharedWithGroupId IS NOT NULL");

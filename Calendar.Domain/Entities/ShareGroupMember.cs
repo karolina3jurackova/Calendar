@@ -7,6 +7,6 @@ public sealed class ShareGroupMember
     public Guid GroupId { get; set; }
     public ShareGroup Group { get; set; } = null!;
 
-    public Guid UserId { get; set; } // ApplicationUser.Id
+    public Guid UserId { get; set; }
     public DateTime AddedUtc { get; set; }
 }

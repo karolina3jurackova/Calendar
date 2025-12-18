@@ -7,5 +7,6 @@ public sealed class ReminderNotifyVM
     public string EventTitle { get; set; } = "";
     public string? Message { get; set; }
 
+    public int? RepeatEveryMinutes { get; set; }
+    public int? RepeatCountLeft { get; set; }
 }
-

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CalendarMvcApp.Controllers;
 
+// EVENTS 
 [Authorize]
 public class EventsController : Controller
 {
@@ -20,6 +21,7 @@ public class EventsController : Controller
         _userManager = userManager;
     }
 
+    // helper: zober Id prihláseného usera (GUID)
     private async Task<Guid> GetCurrentUserIdAsync()
     {
         var user = await _userManager.GetUserAsync(User);
@@ -27,7 +29,7 @@ public class EventsController : Controller
         return user.Id;
     }
 
-    // LIST
+    // LIST - moje udalosti (owner + shared)
     public async Task<IActionResult> Index()
     {
         var userId = await GetCurrentUserIdAsync();
@@ -35,7 +37,7 @@ public class EventsController : Controller
         return View(vm);
     }
 
-    // DETAILS
+    // DETAILS - detail udalosti (len ak má prístup)
     public async Task<IActionResult> Details(Guid id)
     {
         var userId = await GetCurrentUserIdAsync();
@@ -44,7 +46,7 @@ public class EventsController : Controller
         return View(vm);
     }
 
-    // CREATE (GET) /Events/Create?date=YYYY-MM-DD
+    // CREATE - GET (predvyplní Start/End podľa dátumu)
     [HttpGet]
     public IActionResult Create(string? date)
     {
@@ -53,11 +55,7 @@ public class EventsController : Controller
             var start = d.ToDateTime(new TimeOnly(9, 0));
             var end = d.ToDateTime(new TimeOnly(10, 0));
 
-            return View(new EventCreateVM
-            {
-                Start = start,
-                End = end
-            });
+            return View(new EventCreateVM { Start = start, End = end });
         }
 
         return View(new EventCreateVM
@@ -67,7 +65,7 @@ public class EventsController : Controller
         });
     }
 
-    // CREATE (POST)
+    // CREATE - POST (uloží event + sharing + auto reminder podľa service)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EventCreateVM vm)
@@ -87,7 +85,7 @@ public class EventsController : Controller
         }
     }
 
-    // API pre Home kalendár
+    // API: eventy pre JS kalendár (site.js)
     [HttpGet]
     [Route("api/my-events")]
     public async Task<IActionResult> MyEventsApi()
@@ -97,7 +95,7 @@ public class EventsController : Controller
         return Ok(items);
     }
 
-    // EDIT (GET)
+    // EDIT - GET (načíta detail a naplní VM)
     [HttpGet]
     public async Task<IActionResult> Edit(Guid id)
     {
@@ -113,11 +111,11 @@ public class EventsController : Controller
             End = detail.End
         };
 
-        ViewBag.EventId = id;
+        ViewBag.EventId = id; // používa sa vo View pre form action
         return View(vm);
     }
 
-    // EDIT (POST)
+    // EDIT - POST (uloží zmeny cez service)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, EventEditVM vm)
@@ -144,7 +142,7 @@ public class EventsController : Controller
         }
     }
 
-    // DELETE (GET confirm)
+    // DELETE - GET (confirm stránka)
     [HttpGet]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -154,7 +152,7 @@ public class EventsController : Controller
         return View(vm);
     }
 
-    // DELETE (POST)
+    // DELETE - POST (vymaže cez service)
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(Guid id)
@@ -166,7 +164,7 @@ public class EventsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // SEARCH (GET) /Events/Search?Text=...&From=...&To=...
+    // SEARCH - hľadanie v mojich udalostiach (title/desc + filter dátum)
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] EventSearchQueryVM query)
     {

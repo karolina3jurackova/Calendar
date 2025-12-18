@@ -1,6 +1,6 @@
 ﻿(() => {
     // ========================
-    // Safe DOM helpers
+    // Helpers
     // ========================
     function $(id) {
         return document.getElementById(id);
@@ -10,42 +10,145 @@
         if (el) el.addEventListener(ev, fn);
     }
 
-    // ========================
-    // Notification helpers (1F)
-    // ========================
-    async function ensureNotificationPermission() {
-        if (!("Notification" in window)) {
-            console.warn("Browser nepodporuje notifikácie");
-            return false;
-        }
-
-        if (Notification.permission === "granted") return true;
-
-        if (Notification.permission !== "denied") {
-            const perm = await Notification.requestPermission();
-            return perm === "granted";
-        }
-
-        return false;
+    function nowMs() {
+        return Date.now();
     }
 
-    function showNotification(title, body) {
-        if (Notification.permission !== "granted") return;
-
-        new Notification(title, {
-            body,
-            icon: "/favicon.ico"
-        });
+    function parseUtcToMs(utc) {
+        // utc je napr. "2025-12-17T12:00:00Z" alebo bez Z (podľa serializeru)
+        const d = new Date(utc);
+        const t = d.getTime();
+        return Number.isFinite(t) ? t : NaN;
     }
 
     // ========================
-    // Grab elements
+    // Reminder UI (Bootstrap modal + fallback)
+    // ========================
+    function showReminderModal(title, message, fireAtUtc) {
+        const modalEl = $("reminderModal");
+        const t = $("reminderModalTitle");
+        const b = $("reminderModalBody");
+        const tm = $("reminderModalTime");
+
+        // fallback, ak modal nemáš v _Layout.cshtml
+        if (!modalEl || !t || !b) {
+            const when = fireAtUtc ? new Date(fireAtUtc).toLocaleString("sk-SK") : "";
+            alert(`${title || "Pripomienka"}\n${message || ""}\n${when}`);
+            return;
+        }
+
+        t.textContent = title || "Pripomienka";
+        b.textContent = message || "Máte udalosť.";
+
+        if (tm) {
+            tm.textContent = fireAtUtc
+                ? `Čas pripomienky: ${new Date(fireAtUtc).toLocaleString("sk-SK")}`
+                : "";
+        }
+
+        if (window.bootstrap && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else {
+            alert(`${title || "Pripomienka"}\n\n${message || ""}`);
+        }
+    }
+
+    // ========================
+    // Optional browser Notification (ak je povolené)
+    // ========================
+    function tryShowBrowserNotification(title, body) {
+        try {
+            if (!("Notification" in window)) return;
+            if (Notification.permission !== "granted") return;
+            new Notification(title, { body, icon: "/favicon.ico" });
+        } catch {
+            // ignore
+        }
+    }
+
+    // ========================
+    // Reminders polling (funguje na každej stránke)
+    // ========================
+    let reminderPollStarted = false;
+
+    // aby sa jeden reminder nezobrazil 2x (aj keby API vrátilo opakovane)
+    const shownIds = new Set();
+
+    // tolerancia: ak sa trafíme ±10s okolo času, zobrazíme
+    const DUE_TOLERANCE_MS = 10_000;
+
+    async function markSeen(id) {
+        try {
+            await fetch(`/api/my-reminders/${id}/seen`, { method: "POST" });
+        } catch (e) {
+            console.error("Failed to mark reminder as seen", e);
+        }
+    }
+
+    function isDueNow(reminder) {
+        if (!reminder || !reminder.fireAtUtc) return false;
+
+        const fireAt = parseUtcToMs(reminder.fireAtUtc);
+        if (!Number.isFinite(fireAt)) return false;
+
+        const diff = fireAt - nowMs();
+
+        // zobrazíme iba keď je už čas (alebo maximálne 10s do budúcna / 10s do minulosti)
+        return Math.abs(diff) <= DUE_TOLERANCE_MS || diff <= 0;
+    }
+
+    async function pollRemindersOnce() {
+        try {
+            const res = await fetch("/api/my-reminders", {
+                headers: { Accept: "application/json" }
+            });
+
+            // ak nie si prihlásená, API vráti 401 → nič nerobíme
+            if (res.status === 401) return;
+            if (!res.ok) return;
+
+            const reminders = await res.json();
+            if (!Array.isArray(reminders) || reminders.length === 0) return;
+
+            // zobraz iba tie, ktoré sú "due" teraz
+            const due = reminders.filter(r => r && r.id && !shownIds.has(r.id) && isDueNow(r));
+
+            for (const r of due) {
+                shownIds.add(r.id);
+
+                showReminderModal(r.eventTitle, r.message, r.fireAtUtc);
+                tryShowBrowserNotification(
+                    r.eventTitle || "Pripomienka",
+                    r.message || "Máte udalosť."
+                );
+
+                await markSeen(r.id);
+            }
+        } catch (e) {
+            console.error("Reminder polling failed", e);
+        }
+    }
+
+    function startReminderPolling() {
+        if (reminderPollStarted) return;
+        reminderPollStarted = true;
+
+        // prvý fetch hneď
+        pollRemindersOnce();
+
+        // potom pravidelne
+        setInterval(pollRemindersOnce, 5_000);
+    }
+
+    // spustíme polling na každej stránke
+    startReminderPolling();
+
+    // ========================
+    // Calendar UI (iba ak je na stránke)
     // ========================
     const grid = $("grid");
-    if (!grid) {
-        console.debug("site.js: calendar UI not present -> skipping.");
-        return;
-    }
+    if (!grid) return;
 
     const monthLabel = $("monthLabel");
     const prevBtn = $("prevBtn");
@@ -55,16 +158,9 @@
     const selectedLabel = $("selectedLabel");
     const dayEventsEl = $("dayEvents");
 
-    if (!monthLabel || !selectedLabel || !dayEventsEl) {
-        console.debug("site.js: some calendar elements missing -> skipping.");
-        return;
-    }
+    if (!monthLabel || !selectedLabel || !dayEventsEl) return;
 
-    // ========================
-    // Calendar state
-    // ========================
     let eventsCache = [];
-    let remindersScheduled = false;
 
     let current = new Date();
     current.setHours(0, 0, 0, 0);
@@ -93,71 +189,23 @@
         return `${pad2(s.getHours())}:${pad2(s.getMinutes())}–${pad2(e.getHours())}:${pad2(e.getMinutes())}`;
     }
 
-    // ========================
-    // API
-    // ========================
     async function loadEventsFromApi() {
         const res = await fetch("/api/my-events", { headers: { Accept: "application/json" } });
         eventsCache = res.ok ? await res.json() : [];
     }
 
-    async function loadRemindersAndSchedule() {
-        if (remindersScheduled) return;
-
-        const allowed = await ensureNotificationPermission();
-        if (!allowed) return;
-
-        try {
-            const res = await fetch("/api/my-reminders", {
-                headers: { Accept: "application/json" }
-            });
-
-            if (!res.ok) return;
-
-            const reminders = await res.json();
-            const now = Date.now();
-
-            reminders.forEach(r => {
-                const fireAt = new Date(r.fireAtUtc).getTime();
-                const delay = fireAt - now;
-
-                if (delay <= 0) return;
-
-                setTimeout(() => {
-                    showNotification(r.eventTitle, r.message ?? "Pripomienka udalosti");
-
-                    // ✅ opakovanie (ak príde z API)
-                    const everyMin = Number(r.repeatEveryMinutes || 0);
-                    let left = Number(r.repeatCountLeft || 0);
-
-                    if (everyMin > 0 && left > 0) {
-                        const intervalMs = everyMin * 60_000;
-
-                        const tick = () => {
-                            if (left <= 0) return;
-                            left -= 1;
-                            showNotification(r.eventTitle, "Opakovaná pripomienka");
-                            if (left > 0) setTimeout(tick, intervalMs);
-                        };
-
-                        setTimeout(tick, intervalMs);
-                    }
-                }, delay);
-            });
-
-            remindersScheduled = true;
-        } catch (e) {
-            console.error("Failed to schedule reminders", e);
-        }
-    }
-
     function eventsForDate(dateStr) {
-        return eventsCache.filter(ev => toLocalDateStr(ev.start) === dateStr);
+        const dayStart = new Date(dateStr + "T00:00:00");
+        const dayEnd = new Date(dateStr + "T23:59:59");
+
+        return eventsCache.filter(ev => {
+            const evStart = new Date(ev.start);
+            const evEnd = new Date(ev.end);
+
+            return evStart <= dayEnd && evEnd >= dayStart;
+        });
     }
 
-    // ========================
-    // Buttons
-    // ========================
     on(prevBtn, "click", async () => {
         current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
         await renderAll();
@@ -180,11 +228,8 @@
         window.location.href = `/Events/Create?date=${encodeURIComponent(dayStr)}`;
     });
 
-    // ========================
-    // Rendering
-    // ========================
     function renderSidebar() {
-        selectedLabel.textContent = selected.toLocaleDateString("cs-CZ", {
+        selectedLabel.textContent = selected.toLocaleDateString("sk-SK", {
             weekday: "long",
             year: "numeric",
             month: "long",
@@ -196,7 +241,7 @@
 
         dayEventsEl.innerHTML = "";
         if (evs.length === 0) {
-            dayEventsEl.textContent = "Žádné události";
+            dayEventsEl.textContent = "Žiadne udalosti";
             return;
         }
 
@@ -204,8 +249,8 @@
             const row = document.createElement("div");
             row.className = "row";
             row.innerHTML = `<strong>${ev.title}</strong>
-                <small class="text-muted">${formatTimeRange(ev)}</small><br>
-                <small>${ev.description || ""}</small>`;
+        <small class="text-muted">${formatTimeRange(ev)}</small><br>
+        <small>${ev.description || ""}</small>`;
 
             row.addEventListener("click", () => {
                 window.location.href = `/Events/Details/${ev.id}`;
@@ -221,7 +266,7 @@
         const y = current.getFullYear();
         const m = current.getMonth();
 
-        monthLabel.textContent = new Date(y, m, 1).toLocaleDateString("cs-CZ", {
+        monthLabel.textContent = new Date(y, m, 1).toLocaleDateString("sk-SK", {
             month: "long",
             year: "numeric"
         });
@@ -280,7 +325,6 @@
         await loadEventsFromApi();
         renderCalendar();
         renderSidebar();
-        loadRemindersAndSchedule(); // ✅ 1F
     }
 
     renderAll();

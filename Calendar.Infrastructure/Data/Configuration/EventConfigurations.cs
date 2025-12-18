@@ -8,7 +8,6 @@ public class EventConfigurations : IEntityTypeConfiguration<Event>
 {
     public void Configure(EntityTypeBuilder<Event> builder)
     {
-        // PK
         builder.HasKey(e => e.Id);
 
         // Title
@@ -27,7 +26,6 @@ public class EventConfigurations : IEntityTypeConfiguration<Event>
         builder.Property(e => e.EndTime)
             .IsRequired();
 
-        // Owner (Identity user ID – bez navigácie)
         builder.Property(e => e.OwnerId)
             .IsRequired();
 

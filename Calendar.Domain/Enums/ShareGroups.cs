@@ -1,4 +1,5 @@
 namespace Calendar.Domain.Enums;
+
 public enum ShareGroup
 {
     JustMe = 0,

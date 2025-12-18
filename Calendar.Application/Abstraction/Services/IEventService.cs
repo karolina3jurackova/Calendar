@@ -4,6 +4,7 @@ namespace Calendar.Application.Abstraction.Services;
 
 public interface IEventService
 {
+    // USER
     Task<IList<EventListItemVM>> GetMyEventsAsync(Guid userId, CancellationToken ct = default);
     Task<EventDetailVM?> GetDetailAsync(Guid id, Guid userId, CancellationToken ct = default);
 
@@ -11,21 +12,21 @@ public interface IEventService
     Task<bool> UpdateAsync(Guid id, Guid userId, EventEditVM vm, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, Guid userId, CancellationToken ct = default);
 
+    // REMINDERS
+    Task<bool> MarkReminderAsSentAsync(Guid reminderId, Guid userId, CancellationToken ct = default);
+    Task<bool> AddReminderAsync(Guid eventId, Guid userId, ReminderCreateVM vm, CancellationToken ct = default);
+    Task<bool> DeleteReminderAsync(Guid reminderId, Guid userId, CancellationToken ct = default);
+    Task<IList<ReminderNotifyVM>> GetMyRemindersAsync(Guid userId, CancellationToken ct = default); // API pre site.js
+
+    // CALENDAR
     Task<IList<EventCalendarVM>> GetMyCalendarEventsAsync(Guid userId, CancellationToken ct = default);
+
+    // SEARCH
+    Task<IList<EventListItemVM>> SearchMyEventsAsync(Guid userId, EventSearchQueryVM q, CancellationToken ct = default);
 
     // ADMIN
     Task<IList<AdminEventListItemVM>> AdminGetAllAsync(CancellationToken ct = default);
     Task<AdminEventEditVM?> AdminGetEditAsync(Guid id, CancellationToken ct = default);
     Task<bool> AdminUpdateAsync(Guid id, AdminEventEditVM vm, CancellationToken ct = default);
     Task<bool> AdminDeleteAsync(Guid id, CancellationToken ct = default);
-
-    // SEARCH
-    Task<IList<EventListItemVM>> SearchMyEventsAsync(Guid userId, EventSearchQueryVM q, CancellationToken ct = default);
-
-    // REMINDERS
-    Task<bool> AddReminderAsync(Guid eventId, Guid userId, ReminderCreateVM vm, CancellationToken ct = default);
-    Task<bool> DeleteReminderAsync(Guid reminderId, Guid userId, CancellationToken ct = default);
-
-    // ✅ API pre site.js
-    Task<IList<ReminderNotifyVM>> GetMyRemindersAsync(Guid userId, CancellationToken ct = default);
 }
