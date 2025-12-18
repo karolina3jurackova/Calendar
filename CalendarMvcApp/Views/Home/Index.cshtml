@@ -1,8 +1,38 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+﻿<div class="calendar-page">
+    <div class="calendar-main">
+        <div class="calendar-top">
+            <div>
+                <h1>Kalendár</h1>
+                <div id="monthLabel" class="monthLabel"></div>
+            </div>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+            <div class="calendar-actions">
+                <button id="prevBtn" class="btn btn-outline-secondary btn-sm">←</button>
+                <button id="todayBtn" class="btn btn-outline-secondary btn-sm">Dnes</button>
+                <button id="nextBtn" class="btn btn-outline-secondary btn-sm">→</button>
+                <button id="newBtn" class="btn btn-primary btn-sm">+ Nová udalosť</button>
+            </div>
+        </div>
+
+        <!-- NOVÉ: hlavička dní -->
+        <div class="weekdayRow" aria-hidden="true">
+            <div>Po</div>
+            <div>Ut</div>
+            <div>St</div>
+            <div>Št</div>
+            <div>Pi</div>
+            <div>So</div>
+            <div>Ne</div>
+        </div>
+
+        <!-- Toto už máš: -->
+        <div id="grid" class="calendarGrid"></div>
+    </div>
+
+    <aside class="calendar-side">
+        <div class="sideCard">
+            <div id="selectedLabel" class="selectedLabel"></div>
+            <div id="dayEvents" class="dayEvents"></div>
+        </div>
+    </aside>
 </div>

@@ -1,0 +1,81 @@
+@model Calendar.Application.ViewModels.EventCreateVM
+@{
+    ViewData["Title"] = "Create event";
+}
+
+<h2>Create event</h2>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <label class="form-label">Start date</label>
+            <input id="startDate" type="date" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Start time</label>
+            <input id="startTime" type="time" class="form-control" value="09:00" />
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <label class="form-label">End date</label>
+            <input id="endDate" type="date" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">End time</label>
+            <input id="endTime" type="time" class="form-control" value="10:00" />
+        </div>
+    </div>
+
+    <div class="mb-3 mt-3">
+        <label class="form-label">Zdieľať s (emaily)</label>
+        <input asp-for="ShareWithEmails" class="form-control" placeholder="napr. a@a.com; b@b.com" />
+    </div>
+
+    <!-- hidden fields -->
+    <input asp-for="Start" id="Start" type="hidden" />
+    <input asp-for="End" id="End" type="hidden" />
+
+    <button class="btn btn-primary mt-3" type="submit">Save</button>
+</form>
+
+<script>
+    function sync() {
+        const sd = document.getElementById("startDate").value;
+        const st = document.getElementById("startTime").value || "09:00";
+
+        let ed = document.getElementById("endDate").value;
+        const et = document.getElementById("endTime").value || "10:00";
+
+        if (!sd) return;
+
+        // ak endDate nie je zadaný → rovnaký deň
+        if (!ed) ed = sd;
+
+        document.getElementById("Start").value = `${sd}T${st}`;
+        document.getElementById("End").value = `${ed}T${et}`;
+    }
+
+    document.querySelectorAll("input").forEach(i =>
+        i.addEventListener("change", sync)
+    );
+
+    // init
+    const today = new Date().toISOString().substring(0, 10);
+    document.getElementById("startDate").value = today;
+    sync();
+</script>

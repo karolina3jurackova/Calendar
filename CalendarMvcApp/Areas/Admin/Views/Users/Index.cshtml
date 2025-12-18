@@ -1,0 +1,29 @@
+@model IList<CalendarMvcApp.Models.Admin.Users.AdminUserListItemVM>
+@{
+    ViewData["Title"] = "Admin - Users";
+}
+
+<h2>Admin - Users</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Roles</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var u in Model)
+        {
+            <tr>
+                <td>@u.Email</td>
+                <td>@string.Join(", ", u.Roles)</td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-primary" asp-area="Admin" asp-controller="Users" asp-action="Edit"
+                        asp-route-id="@u.Id">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,40 @@
+@model IList<Calendar.Application.ViewModels.AdminEventListItemVM>
+@{
+    ViewData["Title"] = "Admin - Events";
+}
+
+<h2>Admin - Events</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>OwnerId</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var e in Model)
+        {
+            <tr>
+                <td>@e.Title</td>
+                <td>@e.StartLocal</td>
+                <td>@e.EndLocal</td>
+                <td><code>@e.OwnerId</code></td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-primary" asp-area="Admin" asp-controller="Events" asp-action="Edit"
+                        asp-route-id="@e.Id">Edit</a>
+
+                    <form asp-area="Admin" asp-controller="Events" asp-action="Delete" asp-route-id="@e.Id" method="post"
+                        class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-sm btn-danger" type="submit"
+                            onclick="return confirm('Delete?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,42 @@
+@model IList<Calendar.Application.ViewModels.EventListItemVM>
+
+@{
+    ViewData["Title"] = "Vyhľadávanie";
+}
+
+<h1>Vyhľadávanie</h1>
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="alert alert-info">Nenašli sa žiadne udalosti.</div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Názov</th>
+                <th>Začiatok</th>
+                <th>Koniec</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in Model)
+            {
+                <tr>
+                    <td>@e.Title</td>
+                    <td>@e.Start</td>
+                    <td>@e.End</td>
+                    <td>
+                        <a class="btn btn-sm btn-primary" asp-controller="Events" asp-action="Details" asp-route-id="@e.Id">
+                            Detail
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a class="btn btn-secondary" asp-controller="Events" asp-action="Index">Späť na Events</a>

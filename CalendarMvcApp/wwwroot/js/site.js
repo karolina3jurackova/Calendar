@@ -1,228 +1,331 @@
-﻿const grid = document.getElementById("grid");
-const monthLabel = document.getElementById("monthLabel");
+﻿(() => {
+    // ========================
+    // Helpers
+    // ========================
+    function $(id) {
+        return document.getElementById(id);
+    }
 
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const todayBtn = document.getElementById("todayBtn");
-const newBtn = document.getElementById("newBtn");
+    function on(el, ev, fn) {
+        if (el) el.addEventListener(ev, fn);
+    }
 
-const selectedLabel = document.getElementById("selectedLabel");
-const dayEventsEl = document.getElementById("dayEvents");
+    function nowMs() {
+        return Date.now();
+    }
 
-const overlay = document.getElementById("modalOverlay");
-const modalTitle = document.getElementById("modalTitle");
-const titleInput = document.getElementById("eventTitle");
-const dateInput = document.getElementById("eventDate");
-const descInput = document.getElementById("eventDesc");
-const saveBtn = document.getElementById("saveBtn");
-const cancelBtn = document.getElementById("cancelBtn");
-const deleteBtn = document.getElementById("deleteBtn");
+    function parseUtcToMs(utc) {
+        // utc je napr. "2025-12-17T12:00:00Z" alebo bez Z (podľa serializeru)
+        const d = new Date(utc);
+        const t = d.getTime();
+        return Number.isFinite(t) ? t : NaN;
+    }
 
-const STORAGE_KEY = "simple_calendar_events";
+    // ========================
+    // Reminder UI (Bootstrap modal + fallback)
+    // ========================
+    function showReminderModal(title, message, fireAtUtc) {
+        const modalEl = $("reminderModal");
+        const t = $("reminderModalTitle");
+        const b = $("reminderModalBody");
+        const tm = $("reminderModalTime");
 
-let current = new Date(); current.setHours(0, 0, 0, 0);
-let selected = new Date(current);
-let editingId = null;
-
-function pad2(n) { return String(n).padStart(2, "0"); }
-function isoDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
-function sameDay(a, b) {
-    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function loadEvents() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-    catch { return []; }
-}
-function saveEvents(arr) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-}
-
-function eventsForDate(dateStr) {
-    return loadEvents().filter(e => e.date === dateStr);
-}
-
-function openModal(dateStr) {
-    overlay.classList.remove("hidden");
-    dateInput.value = dateStr || "";
-    titleInput.focus();
-}
-
-function closeModal() {
-    overlay.classList.add("hidden");
-    titleInput.value = "";
-    dateInput.value = "";
-    descInput.value = "";
-    editingId = null;
-    deleteBtn.classList.add("hidden");
-    modalTitle.textContent = "Nová událost";
-}
-
-cancelBtn.addEventListener("click", closeModal);
-
-newBtn.addEventListener("click", () => {
-    editingId = null;
-    modalTitle.textContent = "Nová událost";
-    deleteBtn.classList.add("hidden");
-    openModal(isoDate(selected));
-});
-
-deleteBtn.addEventListener("click", () => {
-    if (!editingId) return;
-    const arr = loadEvents().filter(e => e.id !== editingId);
-    saveEvents(arr);
-    closeModal();
-    renderAll();
-});
-
-saveBtn.addEventListener("click", () => {
-    const title = titleInput.value.trim();
-    const date = dateInput.value;
-
-    if (!title) { alert("Zadej název."); return; }
-    if (!date) { alert("Vyber datum."); return; }
-
-    const arr = loadEvents();
-
-    if (editingId) {
-        const idx = arr.findIndex(e => e.id === editingId);
-        if (idx >= 0) {
-            arr[idx].title = title;
-            arr[idx].date = date;
-            arr[idx].desc = descInput.value.trim();
+        // fallback, ak modal nemáš v _Layout.cshtml
+        if (!modalEl || !t || !b) {
+            const when = fireAtUtc ? new Date(fireAtUtc).toLocaleString("sk-SK") : "";
+            alert(`${title || "Pripomienka"}\n${message || ""}\n${when}`);
+            return;
         }
-    } else {
-        arr.push({
-            id: crypto.randomUUID(),
-            title,
-            date,
-            desc: descInput.value.trim()
-        });
+
+        t.textContent = title || "Pripomienka";
+        b.textContent = message || "Máte udalosť.";
+
+        if (tm) {
+            tm.textContent = fireAtUtc
+                ? `Čas pripomienky: ${new Date(fireAtUtc).toLocaleString("sk-SK")}`
+                : "";
+        }
+
+        if (window.bootstrap && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else {
+            alert(`${title || "Pripomienka"}\n\n${message || ""}`);
+        }
     }
 
-    saveEvents(arr);
-    closeModal();
-    renderAll();
-});
-
-prevBtn.addEventListener("click", () => {
-    current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
-    renderAll();
-});
-nextBtn.addEventListener("click", () => {
-    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-    renderAll();
-});
-todayBtn.addEventListener("click", () => {
-    current = new Date(); current.setHours(0, 0, 0, 0);
-    selected = new Date(current);
-    renderAll();
-});
-
-function renderSidebar() {
-    selectedLabel.textContent = selected.toLocaleDateString("cs-CZ", {
-        weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    const dayStr = isoDate(selected);
-    const evs = eventsForDate(dayStr);
-
-    dayEventsEl.innerHTML = "";
-    if (evs.length === 0) {
-        dayEventsEl.textContent = "Žádné události";
-        return;
+    // ========================
+    // Optional browser Notification (ak je povolené)
+    // ========================
+    function tryShowBrowserNotification(title, body) {
+        try {
+            if (!("Notification" in window)) return;
+            if (Notification.permission !== "granted") return;
+            new Notification(title, { body, icon: "/favicon.ico" });
+        } catch {
+            // ignore
+        }
     }
 
-    evs.forEach(ev => {
-        const row = document.createElement("div");
-        row.className = "row";
-        row.innerHTML = `<strong>${ev.title}</strong><br><small>${ev.desc || ""}</small>`;
-        row.addEventListener("click", () => {
-            // edit
-            editingId = ev.id;
-            modalTitle.textContent = "Upravit událost";
-            deleteBtn.classList.remove("hidden");
-            titleInput.value = ev.title;
-            dateInput.value = ev.date;
-            descInput.value = ev.desc || "";
-            openModal(ev.date);
-        });
-        dayEventsEl.appendChild(row);
-    });
-}
+    // ========================
+    // Reminders polling (funguje na každej stránke)
+    // ========================
+    let reminderPollStarted = false;
 
-function renderCalendar() {
-    grid.innerHTML = "";
+    // aby sa jeden reminder nezobrazil 2x (aj keby API vrátilo opakovane)
+    const shownIds = new Set();
 
-    const y = current.getFullYear();
-    const m = current.getMonth();
+    // tolerancia: ak sa trafíme ±10s okolo času, zobrazíme
+    const DUE_TOLERANCE_MS = 10_000;
 
-    monthLabel.textContent = new Date(y, m, 1).toLocaleDateString("cs-CZ", { month: "long", year: "numeric" });
-
-    const first = new Date(y, m, 1);
-    const startOffset = (first.getDay() + 6) % 7; // Po=0
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-    // prázdné buňky
-    for (let i = 0; i < startOffset; i++) {
-        const empty = document.createElement("div");
-        empty.className = "day outside";
-        grid.appendChild(empty);
+    async function markSeen(id) {
+        try {
+            await fetch(`/api/my-reminders/${id}/seen`, { method: "POST" });
+        } catch (e) {
+            console.error("Failed to mark reminder as seen", e);
+        }
     }
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(y, m, d);
-        const dayStr = isoDate(date);
+    function isDueNow(reminder) {
+        if (!reminder || !reminder.fireAtUtc) return false;
 
-        const cell = document.createElement("div");
-        cell.className = "day";
-        cell.innerHTML = `<div class="dayNumber">${d}</div>`;
+        const fireAt = parseUtcToMs(reminder.fireAtUtc);
+        if (!Number.isFinite(fireAt)) return false;
 
-        // události v buňce (max 2)
-        const evs = eventsForDate(dayStr).slice(0, 2);
-        evs.forEach(ev => {
-            const it = document.createElement("div");
-            it.className = "eventItem";
-            it.textContent = ev.title;
-            it.addEventListener("click", (e) => {
-                e.stopPropagation();
-                // edit
-                editingId = ev.id;
-                modalTitle.textContent = "Upravit událost";
-                deleteBtn.classList.remove("hidden");
-                titleInput.value = ev.title;
-                dateInput.value = ev.date;
-                descInput.value = ev.desc || "";
-                openModal(ev.date);
+        const diff = fireAt - nowMs();
+
+        // zobrazíme iba keď je už čas (alebo maximálne 10s do budúcna / 10s do minulosti)
+        return Math.abs(diff) <= DUE_TOLERANCE_MS || diff <= 0;
+    }
+
+    async function pollRemindersOnce() {
+        try {
+            const res = await fetch("/api/my-reminders", {
+                headers: { Accept: "application/json" }
             });
-            cell.appendChild(it);
-        });
 
-        // klik = vybrat den
-        cell.addEventListener("click", () => {
-            selected = new Date(date);
-            renderSidebar();
-        });
+            // ak nie si prihlásená, API vráti 401 → nič nerobíme
+            if (res.status === 401) return;
+            if (!res.ok) return;
 
-        // dvojklik = rovnou přidat událost
-        cell.addEventListener("dblclick", () => {
-            selected = new Date(date);
-            editingId = null;
-            modalTitle.textContent = "Nová událost";
-            deleteBtn.classList.add("hidden");
-            openModal(dayStr);
-            renderSidebar();
-        });
+            const reminders = await res.json();
+            if (!Array.isArray(reminders) || reminders.length === 0) return;
 
-        grid.appendChild(cell);
+            // zobraz iba tie, ktoré sú "due" teraz
+            const due = reminders.filter(r => r && r.id && !shownIds.has(r.id) && isDueNow(r));
+
+            for (const r of due) {
+                shownIds.add(r.id);
+
+                showReminderModal(r.eventTitle, r.message, r.fireAtUtc);
+                tryShowBrowserNotification(
+                    r.eventTitle || "Pripomienka",
+                    r.message || "Máte udalosť."
+                );
+
+                await markSeen(r.id);
+            }
+        } catch (e) {
+            console.error("Reminder polling failed", e);
+        }
     }
-}
 
-function renderAll() {
-    // pokud je current uvnitř měsíce, sjednotíme na 1. den
-    current = new Date(current.getFullYear(), current.getMonth(), 1);
-    renderCalendar();
-    renderSidebar();
-}
+    function startReminderPolling() {
+        if (reminderPollStarted) return;
+        reminderPollStarted = true;
 
-renderAll();
+        // prvý fetch hneď
+        pollRemindersOnce();
+
+        // potom pravidelne
+        setInterval(pollRemindersOnce, 5_000);
+    }
+
+    // spustíme polling na každej stránke
+    startReminderPolling();
+
+    // ========================
+    // Calendar UI (iba ak je na stránke)
+    // ========================
+    const grid = $("grid");
+    if (!grid) return;
+
+    const monthLabel = $("monthLabel");
+    const prevBtn = $("prevBtn");
+    const nextBtn = $("nextBtn");
+    const todayBtn = $("todayBtn");
+    const newBtn = $("newBtn");
+    const selectedLabel = $("selectedLabel");
+    const dayEventsEl = $("dayEvents");
+
+    if (!monthLabel || !selectedLabel || !dayEventsEl) return;
+
+    let eventsCache = [];
+
+    let current = new Date();
+    current.setHours(0, 0, 0, 0);
+
+    let selected = new Date(current);
+
+    function pad2(n) {
+        return String(n).padStart(2, "0");
+    }
+
+    function isoDate(d) {
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    function monthStart(d) {
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+
+    function toLocalDateStr(iso) {
+        return isoDate(new Date(iso));
+    }
+
+    function formatTimeRange(ev) {
+        const s = new Date(ev.start);
+        const e = new Date(ev.end);
+        return `${pad2(s.getHours())}:${pad2(s.getMinutes())}–${pad2(e.getHours())}:${pad2(e.getMinutes())}`;
+    }
+
+    async function loadEventsFromApi() {
+        const res = await fetch("/api/my-events", { headers: { Accept: "application/json" } });
+        eventsCache = res.ok ? await res.json() : [];
+    }
+
+    function eventsForDate(dateStr) {
+        const dayStart = new Date(dateStr + "T00:00:00");
+        const dayEnd = new Date(dateStr + "T23:59:59");
+
+        return eventsCache.filter(ev => {
+            const evStart = new Date(ev.start);
+            const evEnd = new Date(ev.end);
+
+            return evStart <= dayEnd && evEnd >= dayStart;
+        });
+    }
+
+    on(prevBtn, "click", async () => {
+        current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+        await renderAll();
+    });
+
+    on(nextBtn, "click", async () => {
+        current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+        await renderAll();
+    });
+
+    on(todayBtn, "click", async () => {
+        current = new Date();
+        current.setHours(0, 0, 0, 0);
+        selected = new Date(current);
+        await renderAll();
+    });
+
+    on(newBtn, "click", () => {
+        const dayStr = isoDate(selected);
+        window.location.href = `/Events/Create?date=${encodeURIComponent(dayStr)}`;
+    });
+
+    function renderSidebar() {
+        selectedLabel.textContent = selected.toLocaleDateString("sk-SK", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+
+        const dayStr = isoDate(selected);
+        const evs = eventsForDate(dayStr);
+
+        dayEventsEl.innerHTML = "";
+        if (evs.length === 0) {
+            dayEventsEl.textContent = "Žiadne udalosti";
+            return;
+        }
+
+        evs.forEach(ev => {
+            const row = document.createElement("div");
+            row.className = "row";
+            row.innerHTML = `<strong>${ev.title}</strong>
+        <small class="text-muted">${formatTimeRange(ev)}</small><br>
+        <small>${ev.description || ""}</small>`;
+
+            row.addEventListener("click", () => {
+                window.location.href = `/Events/Details/${ev.id}`;
+            });
+
+            dayEventsEl.appendChild(row);
+        });
+    }
+
+    function renderCalendar() {
+        grid.innerHTML = "";
+
+        const y = current.getFullYear();
+        const m = current.getMonth();
+
+        monthLabel.textContent = new Date(y, m, 1).toLocaleDateString("sk-SK", {
+            month: "long",
+            year: "numeric"
+        });
+
+        const firstOfMonth = new Date(y, m, 1);
+        const startOffset = (firstOfMonth.getDay() + 6) % 7;
+        const gridStart = new Date(y, m, 1 - startOffset);
+
+        for (let i = 0; i < 42; i++) {
+            const date = new Date(gridStart);
+            date.setDate(gridStart.getDate() + i);
+
+            const cell = document.createElement("div");
+            cell.className = "day" + (date.getMonth() === m ? "" : " outside");
+
+            if (isoDate(date) === isoDate(selected)) {
+                cell.classList.add("selected");
+            }
+
+            cell.innerHTML = `<div class="dayNumber">${date.getDate()}</div>`;
+
+            eventsForDate(isoDate(date)).slice(0, 2).forEach(ev => {
+                const it = document.createElement("div");
+                it.className = "eventItem";
+                it.textContent = ev.title;
+
+                it.onclick = e => {
+                    e.stopPropagation();
+                    window.location.href = `/Events/Details/${ev.id}`;
+                };
+
+                cell.appendChild(it);
+            });
+
+            cell.onclick = async () => {
+                selected = new Date(date);
+                if (date.getMonth() !== m) {
+                    current = monthStart(date);
+                    await renderAll();
+                    return;
+                }
+                renderCalendar();
+                renderSidebar();
+            };
+
+            cell.ondblclick = () => {
+                window.location.href = `/Events/Create?date=${encodeURIComponent(isoDate(date))}`;
+            };
+
+            grid.appendChild(cell);
+        }
+    }
+
+    async function renderAll() {
+        current = monthStart(current);
+        await loadEventsFromApi();
+        renderCalendar();
+        renderSidebar();
+    }
+
+    renderAll();
+})();

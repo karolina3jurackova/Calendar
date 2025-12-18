@@ -1,0 +1,17 @@
+@model Calendar.Application.ViewModels.EventDetailVM
+@{
+    ViewData["Title"] = "Delete event";
+}
+
+<h2>Delete event</h2>
+
+<div class="alert alert-warning">
+    Naozaj chceš zmazať udalosť <strong>@Model.Title</strong>?
+</div>
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+</form>
